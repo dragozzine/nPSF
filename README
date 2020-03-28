@@ -1,3 +1,19 @@
+README for nPSF
+Physics 529 Class Project Winter 2020
+Darin Ragozzine
+Students: Ian Clark, Jarrod Hansen, Jake Jensen, Maya Laker, Benjamin Proudfoot, Rochelle Steele, maybe others
+
+nPSF is designed to be a code that returns a likelihood map for the 
+relative positions of multiple (n) PSFs in an image. It's goal is to 
+provide likelihood information for relative astrometry, e.g., KBO moons.
+
+nPSF will be written in python using scripts and ipython Jupyter notebooks.
+
+
+
+
+OLD JULIA README
+
 Darin Ragozzine
 August 2, 2019
 
@@ -5,7 +21,7 @@ nPSF is designed to be a code that returns a likelihood map for the
 relative positions of multiple (n) PSFs in an image. It's goal is to 
 provide likelihood information for relative astrometry, e.g., KBO moons.
 
-nPSF is funded by HST-14560.002 on finding the orbit of the moon of 2013 FY27.
+nPSF is partialy funded by HST-14560.002 on finding the orbit of the moon of 2013 FY27.
 
 Currently in the planning phases, nPSF will be written in julia v1 to 
 take advantage of speed and to get me practice working with it. I have 

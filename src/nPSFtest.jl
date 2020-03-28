@@ -4,6 +4,9 @@
 
 using Images
 using FileIO
+using AffineInvariantMCMC
+using PyPlot
+
 
 struct PSF
   nx::Float64 # size in x-direction (in pixels)
@@ -13,14 +16,51 @@ struct PSF
   PSFimg::Array{Float64,2}  # the image of the PSF
 end
 
+mutable struct fitparams
+# TODO: update for floats
+  x0::Int64 # x position of primary (in pixels)
+  y0::Int64 # y position of primary
+  h0::Float64 # height of primary PSF (in counts)
+  Deltaxarr::Array{Int64,1}  # RELATIVE x positions of the other N-1 PSFs in pixels
+  Deltayarr::Array{Int64,1}  # same for y
+  heightarr::Array{Float64,1}     # height (in counts) of N-1 PSFs
+end
+
+
+function fitparam_to_array(infp::fitparams)
+# convert the fit parameters to an array, needed for AIMCMC
+   outarray=[infp.x0,infp.y0,infp.h0]
+   for dx in infp.Deltaxarr
+     push!(outarray,dx)
+   end 
+   for dy in infp.Deltayarr
+     push!(outarray,dy)
+   end
+   for heights in infp.heightarr
+     push!(outarray,heights)
+   end
+   return(outarray)
+    
+end
+
+function array_to_fitparam(infp::Array{Float64,1})
+   numobjects=Int64((size(infp)[1]-3)/3) # in fitparam, so this is N-1 PSFs
+#   println(numobjects)
+   outfitparam=fitparams(Int64(round(infp[1])),Int64(round(infp[2])),infp[3],
+     Int64.(round.(infp[4:3+numobjects])),Int64.(round.(infp[4+numobjects:3+2*numobjects])),infp[4+2*numobjects:3+3*numobjects])
+   return(outfitparam)
+
+end
+
+
+
+
 # let's start with the simplest possible test case
 # square PSFs with known answer and only integer shifts
 
-imgsize=100
-img=zeros(imgsize,imgsize)
 
 
-function generate_simple_square_PSF(psfimgsize=10,psfsize=4)
+function generate_simple_square_PSF(psfimgsize=6,psfsize=2)
   # makes a very simple square PSF for testing purposes
   # TODO: possibly error check good values of psfimgsize and psfsize
   squarePSFimg=zeros(psfimgsize,psfimgsize)
@@ -39,18 +79,52 @@ function insert_one_PSF(givenpsf::PSF, image::Array{Float64,2},xpos::Int,ypos::I
    # ONLY WORKS FOR INTEGERS AND ASSUMES PSF STARTS AT LOWER LEFT CORNER OF PIXEL
    # returns the updated image
    
-   # TODO: make version that works with floats and has PSF start in center of pixel
+   # TODO: maybe make version that works with floats and has PSF start in center of pixel
 
    dx = givenpsf.nx/2  # halfsize of PSF
    dy = givenpsf.ny/2
+   psfimg=givenpsf.PSFimg
 
    newimage=copy(image)
 
-   newimage[Int(xpos-dx):Int(xpos+dx-1),Int(ypos-dy):Int(ypos+dy-1)] += givenpsf.PSFimg*height
+   # TODO: error handling when psf is close enough to edge to go over
+
+   nimx=size(image)[1]
+   nimy=size(image)[2]
+
+   for fillx in (xpos-dx):(xpos+dx-1)
+     for filly in (ypos-dy):(ypos+dy-1)
+       if .&(fillx >= 1,fillx <= nimx-1)
+         if .&(filly >= 1, filly <= nimy-1)
+
+           newimage[Int64(fillx),Int64(filly)] += 
+               psfimg[Int64(fillx-xpos+dx+1),Int64(filly-ypos+dy+1)]*maximum([height,0.0])
+
+
+         end
+       end
+     end
+   end
+    
+   
+#   minx=minimum([Int(xpos-dx),1])
+#   maxx=maximum([Int(xpos+dx-1),nimx-1])
+#   miny=minimum([Int(ypos-dy),1])
+#   maxy=maximum([Int(ypos+dy-1),nimy-1])
+#   newimage[minx:maxx,miny:maxy] += givenpsf.PSFimg*height
 
    return(newimage)
 
 end
+
+
+# floating point shifts
+# using CoordinateTransformations
+# using Images
+# shiftedimg=warp(img,Translation(xshift,yshift))
+# shiftedimg is an OffsetArray
+# shiftedimg.offsets gives the offsets
+
 
 
 function insert_N_PSFs(givenpsf::PSF, image::Array{Float64,2},xpos::Array{Int},
@@ -73,7 +147,7 @@ function insert_N_PSFs(givenpsf::PSF, image::Array{Float64,2},xpos::Array{Int},
 end # insert_N_PSFs
 
 function calc_poisson_log_likelihood(modelimage::Array{Float64,2}, obsimage::Array{Float64,2}, 
-         mask::BitArray{2}, readnoise::Float64=0.0)
+         mask::BitArray{2}, readnoise::Float64=1.0)
 
   # calculates the Poisson log likelihood that the model image and observed image are the same
   # uses the mask and noise arrays
@@ -82,6 +156,7 @@ function calc_poisson_log_likelihood(modelimage::Array{Float64,2}, obsimage::Arr
   # if you don't know about readnoise, it's probably best to just set readnoise=0
 
   @assert(size(modelimage) == size(obsimage) == size(mask))
+  @assert(readnoise > 0.0) # readnoise has to be non-zero I think
 
    pll = 0.0 # the Poisson log likelihood
 
@@ -90,6 +165,8 @@ function calc_poisson_log_likelihood(modelimage::Array{Float64,2}, obsimage::Arr
    if mask[i,j]  # only calculate if in the mask
 #     println(i, j, "  ", (obsimage[i,j] + readnoise^2), "  ", 
 #           log(modelimage[i,j] + readnoise^2), "  ", modelimage[i,j])
+
+
      pll += (obsimage[i,j] + readnoise^2)*log(modelimage[i,j] + readnoise^2) - modelimage[i,j]
      # Poisson noise model with read noise; ignoring the constant term since we 
        # only care about relative log-likelihoods
@@ -104,24 +181,98 @@ function calc_poisson_log_likelihood(modelimage::Array{Float64,2}, obsimage::Arr
 end
 
 
+function llhood(params::Array{Float64,1})
 
-givenpsf=generate_simple_square_PSF()
+    inparams=array_to_fitparam(params)
+    return(llhood(inparams))
 
-imgsize=100
+end
+
+
+
+function llhood(params::fitparams)
+ # the log-likelihood function that's going to be used by AIMCMC
+
+ # let's say params=(x0,y0,h0,Deltaxarr,Deltayarr,heightarr) for now
+
+# print(params)
+
+ # make modelimage using insert_N_PSFs
+ # force values to be integers
+ xarr=Int64[]
+ push!(xarr,Int(round(params.x0)))
+ for ix in params.Deltaxarr
+   push!(xarr,Int(round(params.x0+ix)))
+ end
+ yarr=Int64[]
+ push!(yarr,Int(round(params.y0)))
+ for iy in params.Deltayarr
+   push!(yarr,Int(round(params.y0+iy)))
+ end
+
+ harr=Float64[]
+ push!(harr,params.h0)
+ for ih in params.heightarr
+   push!(harr,ih)
+ end
+
+ #println(xarr, yarr, harr)
+
+
+ modelimage=zeros(imgsize,imgsize)
+ modelimage=insert_N_PSFs(givenpsf,modelimage,xarr,yarr,harr)
+
+ # set mask
+ mask=trues(size(obsimage))
+
+ #println(modelimage)
+ #println(obsimage)
+
+ # calculate likelihood that obsimage and modelimage are the same
+ pll = calc_poisson_log_likelihood(modelimage,obsimage,mask,1.0)
+
+ return pll 
+
+
+end
+
+
+
+global givenpsf=generate_simple_square_PSF()
+
+imgsize=40
 img=zeros(imgsize,imgsize)
-img=insert_N_PSFs(givenpsf,img,[50,53],[51,52],[1000.0,100.0])
+x0true=20
+y0true=21
+x1true=23
+y1true=22
+h0true=1000.0
+h1true=100.0
+readnoisetrue=1.0
+img=insert_N_PSFs(givenpsf,img,[x0true,x1true],[y0true,y1true],[h0true,h1true])
 
 save("../results/nPSFtest_img.png",colorview(Gray, img/maximum(img)))
 # test image looks fine
 
+global obsimage = copy(img)
+
 
 modelimg=zeros(imgsize,imgsize)
-modelimg=insert_N_PSFs(givenpsf,img,[50,53],[51,52],[1000.0,100.0])
+modelimg=insert_N_PSFs(givenpsf,img,[x0true,x1true],[y0true,y1true],[h0true,h1true])
 mask=trues(imgsize,imgsize)
 
-pll=calc_poisson_log_likelihood(modelimg,img,mask,1.0)
 
-println("True Value: ", pll)
+pll=calc_poisson_log_likelihood(obsimage,obsimage,mask,readnoisetrue)
+plltrue=pll
+
+println("True Value: ", plltrue)
+
+
+
+
+
+
+
 
 mask=trues(imgsize,imgsize)
 
@@ -129,13 +280,13 @@ Deltax1arr=Float64[]
 Deltay1arr=Float64[]
 LLarr=zeros(11,11)
 
-for x0 in 48:52
-for y0 in 48:52
+for x0 in 18:22
+for y0 in 18:22
 for Deltax1 in -5:5
 for Deltay1 in -5:5
 
 modelimg=zeros(imgsize,imgsize)
-modelimg=insert_N_PSFs(givenpsf,img,[x0,x0+Deltax1],[y0,y0+Deltay1],[1000.0,100.0])
+modelimg=insert_N_PSFs(givenpsf,img,[x0true,x0true+Deltax1],[y0true,y0true+Deltay1],[1000.0,100.0])
 pll=calc_poisson_log_likelihood(modelimg,img,mask,1.0)
 
 push!(Deltax1arr,Deltax1)
@@ -160,23 +311,152 @@ println("!!!")
 sclLLarr=(LLarr.-minimum(LLarr))/(maximum(LLarr)-minimum(LLarr))
 show(sclLLarr)
 
-save("../results/nPSFtest_LL.png",colorview(Gray, sclLLarr))
+save("../results/nPSFtest_LL.png",colorview(Gray, repeat(sclLLarr,inner=(50,50))))
 
 
 
 
+function make_nudged_fitparams(inputfitparam::fitparams,nudgefitparam::fitparams,numfitparams::Int64)
+
+  # take a single fitparam and a "nudge" fitparam that describes how each component
+  # should be shifted (using a random Gaussian)
+  # of numfitparams length
+  # Output: an array of fitparams that have been nudged
+  # useful for the input into AIMCMC
+
+  output=fitparams[]
+  for i in 1:numfitparams
+  thisfitparam=deepcopy(inputfitparam)
+  thisfitparam.x0 = Int64(round( inputfitparam.x0 + nudgefitparam.x0*randn() )) 
+  thisfitparam.y0 = Int64(round( inputfitparam.y0 + nudgefitparam.y0*randn() )) 
+  thisfitparam.h0 = inputfitparam.h0 + nudgefitparam.h0*randn()  
+  thisfitparam.Deltaxarr = round.(Int64,  inputfitparam.Deltaxarr + nudgefitparam.Deltaxarr.*rand(length(nudgefitparam.Deltaxarr)) )  
+  thisfitparam.Deltayarr = round.(Int64,  inputfitparam.Deltayarr + nudgefitparam.Deltayarr.*rand(length(nudgefitparam.Deltayarr)) ) 
+  thisfitparam.heightarr = inputfitparam.heightarr = inputfitparam.heightarr + nudgefitparam.heightarr.*rand(length(nudgefitparam.heightarr))  
+
+  push!(output,thisfitparam)
+  end
+
+  return output
+
+end
+
+testfitparams=fitparams(20,21,1000.0,[2,3],[1,1],[100,101])
+
+truefitparams=fitparams(x0true,y0true,h0true,[x1true-x0true],[y1true-y0true],[h1true])
+testfitparams=truefitparams
+
+#println(fitparam_to_array(testfitparams))
+
+#nudgefitparams=fitparams(1,1,100,[1,1],[2,3],[10,11])
 
 
-# make a function that calculates the log(likelihood) that a test image correctly
-# describes a given image, i.e., it uses Poisson statistics pixel by pixel and 
-# then adds up the log probabilities
-# have a gain=1 default parameter
+numwalkers = 20
+
+# make nudged initial values
+nudgesize=0.2 # 10% nudging for all parameters for simplicity at this point
+
+initguessarray=fitparam_to_array(testfitparams)
+lenparams=size(initguessarray)[1]
+
+initguessfitparams=zeros(lenparams,numwalkers)
+
+for iwalker in 1:numwalkers
+  print(iwalker)
+
+  if iwalker == 0
+    nudgemult=ones(lenparams)
+  else
+    nudgemult=randn(lenparams)*nudgesize
+  end
+
+  initguessfitparams[:,iwalker]=initguessarray.*(1.0.+nudgemult)
+
+end
+
+println()
+println(initguessfitparams)
+println()
+
+
+thinning = 5
+numsamples_perwalker = 1000
+burnin = 200
+#initguessfitparams=make_nudged_fitparams(testfitparams,nudgefitparams,numwalkers)
+#initguessfitparams=permutedims(permutedims(initguessfitparams))  # needed to get this in the right shape for AIMCMC
+#initguessfitparams=permutedims(initguessfitparams)
+
+#println(initguessfitparams)
+#println(typeof(initguessfitparams))
+#println(size(initguessfitparams))
+
+
+
+@time chain, llhoodvals = AffineInvariantMCMC.sample(llhood, numwalkers, initguessfitparams, burnin, 1)
+println("Chain - burnin")
+#println(chain)
+println()
+println("LLhoodVals - burnin")
+#println(llhoodvals)
+println()
+
+
+chain, llhoodvals = AffineInvariantMCMC.sample(llhood, numwalkers, chain[:, :, end], numsamples_perwalker, thinning)
+println("Chain - after")
+#println(chain)
+println()
+println("LLhoodVals - after")
+#println(llhoodvals)
+println()
+
+println("Maximum llhoodval:", maximum(llhoodvals))
+
+println("True Value: ", plltrue)
+println(llhood(testfitparams))
+
+PyPlot.figure()
+PyPlot.plot(chain[4,:,:],llhoodvals,"b.")
+PyPlot.ylim(plltrue-1,plltrue)
+PyPlot.plot([x1true-x0true],[plltrue],"rx")
+PyPlot.savefig("../results/LL_vs_Deltax.png")
+
+PyPlot.figure()
+PyPlot.plot(chain[5,:,:],llhoodvals,"b.")
+PyPlot.ylim(plltrue-1,plltrue)
+PyPlot.plot([y1true-y0true],[plltrue],"rx")
+PyPlot.savefig("../results/LL_vs_Deltay.png")
+
+PyPlot.figure()
+PyPlot.plot(chain[6,:,:],llhoodvals,"b.")
+PyPlot.ylim(plltrue-1,plltrue)
+PyPlot.plot([h1true],[plltrue],"rx")
+PyPlot.savefig("../results/LL_vs_h1.png")
+
+
+
+println("NOT INCLUDING PRIORS")
+println("NOT INCLUDING PRIORS")
+println("NOT INCLUDING PRIORS!")
+
+
+# need marginalized probability distributions for Deltax and Deltay
+# the easiest/obviousest way to do this is with MCMC of some kind
+# AffineInvariantMCMC, the julia equivalent of emcee, is working in julia1
+# and Ben used it for Proudfoot & Ragozzine 2019, so we have some history
+
+
+
 
 # now, have priors for xi, yi, hi for i=1,N
 # use the Distributions package and just do Uniform Tophats for now
 # EXCEPT there will be different log-likelihood values if you use x1,x2,y1,y2, etc.
 # So, should have uniform priors for x0, y0, hi, and Deltax, Deltay (for i=1,N-1)
 # That way, it is trivial to marginalize over Deltax and Deltay
+
+
+
+
+
 
 # giant loop: 
   # draw random values from all the priors
@@ -196,8 +476,15 @@ save("../results/nPSFtest_LL.png",colorview(Gray, sclLLarr))
 # and size (~0.01 pixel = WFC3 0.4 mas) and output this to a csv text file. That's the output.
 
 
+# ?TODO: update insert_N_PSFs to be more consistent with fitparams (e.g., using x0 and Deltaxarr instead of xarr)
 
 
+# For actual WFC3:
+# get the PSF
+# include charge diffusion kernel
 
+
+# INSTEAD OF USING A MASK, HAVE A MAXIMUM LIKELIHOOD PENALTY FOR EACH PIXEL so that hot pixels or 
+# cosmic rays are bad but not overly weighted. Similar to Hogg outlier fitting idea. 
 
 
