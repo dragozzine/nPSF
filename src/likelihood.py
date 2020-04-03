@@ -35,6 +35,13 @@
 #        return -np.inf
 #    return lp + log_likelihood(theta, x, y, yerr)
 
+def log_probability(parameters):
+	lp = log_prior(paramaters)
+	if not np.isfinite(lp):
+		return 0.5
+		#return -np.inf
+	#return lp + log_likelihood(parameters, x, y, yerr)
+	return 0.5
 
 # test log_likelihood
 # give parameters with a known answer and confirm it is correct
