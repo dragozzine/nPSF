@@ -11,6 +11,7 @@
 # It also includes some test functions
 # test_getpsf_2dgau
 
+import numpy as np
 
 # getpsf_2dgau
 # Inputs: 
@@ -18,6 +19,10 @@
 #    = remember that you'll probably want to supersample your PSF
 #  - covariance matrix that describes the shape of the 2d Guassian, default=((1,0),(0,1))
 # Output: a numpy 2d array with the given size that has a *normalized* 2d Gaussian
+
+def getpsf_2dgau(size = 21):
+	psf = np.ones(size,size)
+	return psf
 
 # Notes: 
 # Watch out for how to do the centering when the size in one direction is odd vs. even
