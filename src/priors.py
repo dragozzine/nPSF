@@ -19,6 +19,10 @@
 # - the (natural) log likelihood of the prior for these parameters
 # including -np.inf for unallowed priors
 
+def log_prior(params):
+    
+    return 0
+
 
 # log_prior_df
 # Inputs: 
