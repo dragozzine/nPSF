@@ -50,12 +50,13 @@ def params_to_fitarray(param_df, fixation_vals):
     
     # Questions:
     #    -What kind of array does emcee use that this function will need to give it?
+    #        (e.g., what values will we want?)
     #    -For clarity: The change dictionary will only be loaded with things that
     #        the fixation values array will say are floating?  Is it a string array?
     #        Or maybe it's a dictionary in and of itself?
     #    -What all will be in the parameters dataframe?
     
-    
+    emcee_arr = param_df.as_matrix()
     
     # Dictionary assignment will look something like this:
     # change_dict["param"] = array_val
