@@ -26,39 +26,41 @@ def params_to_fitarray(param_df, fixation_vals):
     param_df - The parameters dataframe
     
     fixation_vals - Information about which parameters are to be held
-        fixed or floating.
+        fixed or floating.  But these may not be used.
         
     Returns:
     
     emcee_arr - An array that emcee can use.
     
     change_dict - A dictionary that tracks which parameter name was
-        assigned to which value in the array.
+        assigned to which value in the array. (Basically the names of the
+        dataframe's columns and which index they match)
     """
     
     # To do:
-    #    -Find out just what these values are that will be input.
-    #    -Find out what kind of array emcee uses.
+    #    -Figure out how to automatically create the dictionary.
     
     # Notes:
     #    -So it sounds like emcee cannot use a dataframe, so this function
     #        will take the necessary values out of the dataframe and put them
     #        into an array.
     #    -It doesn't sound like I'm doing any data manipulation in here...
+    #    -emcee uses a 2-D array.  The dictionary will pretty much hold the columns.
     
     # Questions:
-    #    -What kind of array does emcee use that this function will need to give it?
-    #        (e.g., what values will we want?)
-    #    -For clarity: The change dictionary will only be loaded with things that
-    #        the fixation values array will say are floating? So parameter names and
-    #        indexes?
-    #    -What all will be in the parameters dataframe?
-    #    -Just what will the fixation values array look like?
+    #    -Just what will the fixation values array look like, if I use those?
     
+    # Takes the dataframe and transforms it into a matrix that emcee can use.
     emcee_arr = param_df.as_matrix()
     
-    # Dictionary assignment will look something like this:
-    # change_dict["param"] = array_val (probably an index)
+    # Here we create the dictionary. We need to load it with a junk value to start.
+    # We also include an integer for the purposes of creating the dictionary keys.
+    change_dict = {0:"Junk"}
+    n = 0
+    
+    for col in param_df.columns:
+        change_dict[n] = col
+        n += 1
     
     return emcee_arr, change_dict
 
@@ -70,7 +72,8 @@ def fitarray_to_paramsdf(emcee_arr, change_dict):
     
     Parameters:
     
-    emcee_arr - An array that emcee can use.
+    emcee_arr - An array that emcee can use.  It's coming back here to
+        be remade into a dataframe.
     
     change_dict - A dictionary that tracks which parameter name was
         assigned to which value in the array.
