@@ -78,7 +78,7 @@ def fitarray_to_paramsdf(emcee_arr, change_dict):
     
     # We make the dataframe
     param_df = pd.DataFrame(emcee_arr,
-                            colums = [dict_vals])
+                            columns = [dict_vals])
     
     #return param_df, fixation_vals
     return param_df
