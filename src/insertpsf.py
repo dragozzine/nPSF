@@ -15,6 +15,10 @@
 # 
 # 
 
+import numpy as np
+from getpsf import *
+import scipy.ndimage
+import skimage.measure
 
 # insertonepsf
 # Inputs:
@@ -29,8 +33,43 @@
 # Note, some of the defaults above may not be able to be implemented as actual "defaults"
 # in the function call, but if they are "None" you could use these values
 
+def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5, ycen = 49.5,
+                  psfscale = 1, psfheight = 1):
+	
+	# Rescaling the psf
+	psf = psfheight*psf
+
+	# Finding the shift to put center of psf at (xcen, ycen)
+	psfxcen = (psf.shape[0] - 1)/2
+	psfycen = (psf.shape[1] - 1)/2
+	supxcen = xcen*psfscale + (psfscale - 1)*0.5	
+	supycen = ycen*psfscale + (psfscale - 1)*0.5
+
+	xshift = supxcen - psfxcen
+	yshift = supycen - psfycen
+
+	# Putting the psf into a full supersampled array
+	fullpsf = np.zeros((image.shape[0]*psfscale,image.shape[1]*psfscale))
+	fullpsf[0:psf.shape[0], 0:psf.shape[1]] = psf
+
+	# Shifting the full supersampled psf to the correct center
+	fullpsf = scipy.ndimage.shift(fullpsf, (xshift,yshift))
+	print(fullpsf.sum())
+
+	# Now downsizing the supersampled array
+	psfimage = skimage.measure.block_reduce(fullpsf, (psfscale,psfscale))
+	print(psfimage.sum())
+	
+	plt.figure()
+	plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
+	plt.colorbar()
+	plt.show()
 
 
+
+
+insertpsf_one(xcen = 70.5, ycen = 30.5, psfscale = 3)
+	
 #test_insertonepsf
 # makes a simple image and PSF and inserts it at a particular point 
 # makes a plot of the image and saves it

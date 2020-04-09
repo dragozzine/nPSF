@@ -23,15 +23,16 @@ import matplotlib.pyplot as plt
 #  - covariance matrix that describes the shape of the 2d Guassian, default=((1,0),(0,1))
 # Output: a numpy 2d array with the given size that has a *normalized* 2d Gaussian
 
-def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]])):
+def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 3):
 	# Creating the gaussian model with center at the center of the image
 	gaussian = astropy.modeling.functional_models.Gaussian2D(amplitude = 1, 
-	x_mean = (size[0]-1)/2, y_mean = (size[1]-1)/2, cov_matrix = cov)
-	
+	  x_mean = ((supersample*size[0])-1)/2, y_mean = ((supersample*size[1])-1)/2, 
+	  cov_matrix = supersample**2 * cov)
+
 	# Evaluating the psf at grid values
-	psf = np.zeros(size)
-	for i in range(size[0]):
-		for j in range(size[1]):
+	psf = np.zeros((supersample*size[0],supersample*size[1]))
+	for i in range(supersample*size[0]):
+		for j in range(supersample*size[1]):
 			psf[i,j]=gaussian.evaluate(i,j,gaussian.amplitude,gaussian.x_mean,
 			gaussian.y_mean,gaussian.x_stddev,gaussian.y_stddev,gaussian.theta)
 	return psf/psf.sum()
@@ -54,10 +55,10 @@ def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]])):
 # checks that the sum of the returned image is 1
 # plots the image and saves to a file
 
-def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]])):
+def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersample = 1):
 	# Getting psf from getpsf_2dgau
-	psf = getpsf_2dgau(size = size, cov = cov)
-	
+	psf = getpsf_2dgau(size = size, cov = cov, supersample = supersample)
+
 	# Check if sum == 1 using math.isclose due to floating point errors
 	if not math.isclose(psf.sum(), 1.0, rel_tol = 1e-10):
 		print("Error in getpsf_2dgau: Sum of psf is not 1.0")
@@ -65,11 +66,13 @@ def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]])):
 	# Plot the psf to see what it looks like
 	plt.figure()
 	plt.imshow(psf, cmap='hot', interpolation='nearest')
+	plt.colorbar()
 	plt.show()
 	#plt.savefig()		Make this have a place to save
 	plt.close()
 
 
-test_getpsf_2dgau()
-test_getpsf_2dgau(size = (50,50), cov = np.array([[10,3],[3,3]]))
+#test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]))
+#test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]), supersample = 2)
+#test_getpsf_2dgau(size = (40,40), cov = 4*np.array([[5,1.5],[1.5,1.5]]))
 
