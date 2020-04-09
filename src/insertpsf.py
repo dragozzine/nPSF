@@ -60,7 +60,7 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 	psfimage = skimage.measure.block_reduce(fullpsf, (psfscale,psfscale))
 	print(psfimage.sum())
 
-	# Plotting the PSF image to check (remove this once fully functioning	
+	# Plotting the PSF image to check (remove this once fully functioning)	
 	plt.figure()
 	plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
 	plt.colorbar()
@@ -73,7 +73,10 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 
 
 def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
+	# Creates composite image of image passed in + psf image
 	imageonepsf = insertpsf_one(image = image, xcen = 10.5)
+
+	# Plots the image
 	plt.figure()
 	plt.imshow(imageonepsf, cmap = "hot", interpolation = "nearest")
 	plt.colorbar()
@@ -84,11 +87,16 @@ def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 
 def insertpsf_n(image = np.zeros((100,100)), psfs = np.array([getpsf_2dgau()]), 
                 xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1])):
+	# Checking if inputs are all the same size
 	if not xcens.size == ycens.size == heights.size == psfs.shape[0]:
 		raise ValueError("psfs, xcens, ycens, and heights must be the same length")
+
+	# Looping over parameters to insert psfs
 	for i in range(xcens.size):
 		image = insertpsf_one(image = image, psf = psfs[i], xcen = xcens[i], 
 		                      ycen = ycens[i], psfheight = heights[i])
+
+	# Plotting the composite image (remove when fully functioning)
 	plt.figure()
 	plt.imshow(image, cmap = "hot", interpolation = "nearest")
 	plt.colorbar()
@@ -98,7 +106,7 @@ def insertpsf_n(image = np.zeros((100,100)), psfs = np.array([getpsf_2dgau()]),
 
 
 
-
+# Small test case for insertpsf_n
 insertpsf_n(image = np.random.random(size = (100,100))*0.01, psfs = np.array([getpsf_2dgau(),
 getpsf_2dgau(),getpsf_2dgau()]), xcens = np.array([49.5,47.0,40.0]), ycens = np.array([49.5,49.23,54.98]),
 heights = np.array([1.0,0.3,0.2]))
