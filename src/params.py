@@ -22,7 +22,7 @@ def params_to_fitarray(param_df):
     a dictionary that holds the column names so that the dataframe
     can be recreated later in the fitarray_to_params function.
     
-    Parameters:
+    Inputs:
     
     param_df - The parameters dataframe
         
@@ -57,7 +57,7 @@ def fitarray_to_paramsdf(emcee_arr, change_dict):
     tracks which parameter name was assigned to which value in the
     array to a parameters dataframe.
     
-    Parameters:
+    Inputs:
     
     emcee_arr - An array that emcee can use.  It's coming back here to
         be remade into a dataframe.
