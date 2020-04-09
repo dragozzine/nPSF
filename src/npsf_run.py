@@ -10,16 +10,20 @@
 # Output: Chains of parameters from run
 
 """ Run nPSF
+Runs emcee with likelihood calculations and parameters from other .py files (likelihood.py
+and params.py respectively) and with properties from a dictionary (not written yet).
 Inputs:
     JSON file with properties of run
-    log-likelihood calculations (Jarrod)
-    parameters as df/array (Ian)
+    log-likelihood calculations (likelihood.py)
+    parameters as df/array (params.py)
 
 Outputs:
     chain from the run with posteriors
-
+    makes corner plot for parameters
+    WILL save a csv file with flat chain (does not have that functionality yet)
 """
-### THIS CODE IS NOT FUNCTIONING YET ###
+
+### THIS CODE RUNS WITH TEST DATA ###
 
 import numpy as np
 import emcee
@@ -29,19 +33,18 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import corner
-from likelihood import log_probability # Jarrod's code for EnsembleSampler
-# from Ian import df_to_array, npsf_init_guess()
+# from likelihood import log_probability # Jarrod's code for EnsembleSampler
+# from params.py import df_to_array, npsf_init_guess()
 np.random.seed(42)
 
-# Define varaibles
-# ndim - Ian ?
+
 ndim = 5 # will get from Ian's params.py code
 # npsf_likelihood -- from Jarrod?
 # vvv in run_props vvv
 nburnin = 0 # number of steps of burnin (will be deleted)
 nsteps = 5000 # number of steps
-nwalkers = 32
-filename = "results.csv"
+nwalkers = 32 # number of walkers
+filename = "results.csv" # name of output file containing  flatchain
 
 
 def log_probability(x, mu, cov):
@@ -92,7 +95,7 @@ def make_hist(flatchain, param):
     Input: flatchain (2D version of results from sampler), param (the index
       of the parameter to be used.
     Output: Saves an image of the histogram. Returns nothing.
-    # Make plot From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
+    From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
     """
     plt.hist(flatchain[:, param], 100, color="k", histtype="step")
     plt.xlabel(r"$\theta_1$")
@@ -130,7 +133,10 @@ p0 = np.random.rand(nwalkers, ndim) # From: https://emcee.readthedocs.io/en/stab
 # Get means and cov (for test code)
 means, cov = means_cov()
 
-### Check for bad walkers if you want
+###########################################################
+### This is where the code could check for bad walkers. ### 
+### I have not written this functionality yet.          ###
+###########################################################
 
 # Create sampler object
 sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args = [means, cov] )
