@@ -15,18 +15,16 @@
 
 import pandas as pd
 
-def params_to_fitarray(param_df, fixation_vals):
-    """Converts a parameters dataframe and information about which
-    parameters are to be held fixed or floating and makes an array
-    that emcee can use along with a dictionary that tracks which
-    parameter name was assigned to which value in the array.
+#def params_to_fitarray(param_df, fixation_vals):
+def params_to_fitarray(param_df):
+    """This function takes a dataframe and converts it into an array
+    that can be processed and later used in emcee.  It also creates
+    a dictionary that holds the column names so that the dataframe
+    can be recreated later in the fitarray_to_params function.
     
     Parameters:
     
     param_df - The parameters dataframe
-    
-    fixation_vals - Information about which parameters are to be held
-        fixed or floating.  But these may not be used.
         
     Returns:
     
@@ -36,17 +34,7 @@ def params_to_fitarray(param_df, fixation_vals):
         assigned to which value in the array. (Basically the names of the
         dataframe's columns and which index they match)
     """
-    
-    # To do:
-    #    -Figure out how to automatically create the dictionary.
-    
-    # Notes:
-    #    -So it sounds like emcee cannot use a dataframe, so this function
-    #        will take the necessary values out of the dataframe and put them
-    #        into an array.
-    #    -It doesn't sound like I'm doing any data manipulation in here...
-    #    -emcee uses a 2-D array.  The dictionary will pretty much hold the columns.
-    
+        
     # Questions:
     #    -Just what will the fixation values array look like, if I use those?
     
@@ -67,8 +55,7 @@ def params_to_fitarray(param_df, fixation_vals):
 def fitarray_to_paramsdf(emcee_arr, change_dict):
     """Converts the array that emcee uses and the dictionary that
     tracks which parameter name was assigned to which value in the
-    array to a parameters dataframe and information about which
-    parameters are to be held fixed or floating.
+    array to a parameters dataframe.
     
     Parameters:
     
@@ -81,11 +68,17 @@ def fitarray_to_paramsdf(emcee_arr, change_dict):
     Returns:
     
     param_df - The parameters dataframe
-    
-    fixation_vals - Information about which parameters are to be held
-        fixed or floating.
     """
-    param_df = pd.DataFrame(emcee_arr,
-                            colums = ["What the columns are"])
     
-    return param_df, fixation_vals
+    # We take the dictionary values and put them in a list form that
+    #    the dataframe can use as its columns.
+    dict_vals = []
+    for x in change_dict:
+        dict_vals.append(change_dict[x])
+    
+    # We make the dataframe
+    param_df = pd.DataFrame(emcee_arr,
+                            colums = [dict_vals])
+    
+    #return param_df, fixation_vals
+    return param_df
