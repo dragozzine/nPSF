@@ -1,7 +1,8 @@
 # params.py
 # part of Physics 529 nPSF
 # created by Darin Ragozzine
-# April 6, 2020
+# functions finished by Ian Clark
+# April 9, 2020
 # 
 # functions used to work with the parameters
 # 
