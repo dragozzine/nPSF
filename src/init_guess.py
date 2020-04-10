@@ -19,3 +19,25 @@
 # a parameters dataframe with the same column names, nwalker rows 
 # drawn from this distribution. As before, write a test function 
 # to see that this works.  
+
+import pandas as pd
+
+def init_guess(start_guess_df):
+    """This function will produce the initial guess used in nPSF.
+    
+    Input: 
+    
+    start_guess_df - A dataframe that has the columns as the
+        parameter names, the first row is the mean value for each 
+        parameter, and the second row is the standard deviation 
+        for each parameter.
+    
+    Returns:
+    
+    params_df - A parameters dataframe with the same column names
+        as start_guess_df and nwalker rows drawn from the 
+        distribution.
+    """
+    
+    
+    return params_df
