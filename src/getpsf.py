@@ -14,6 +14,7 @@
 import math
 import numpy as np
 import astropy.modeling.functional_models
+import astropy.io.fits
 import matplotlib.pyplot as plt
 
 # getpsf_2dgau
@@ -23,7 +24,7 @@ import matplotlib.pyplot as plt
 #  - covariance matrix that describes the shape of the 2d Guassian, default=((1,0),(0,1))
 # Output: a numpy 2d array with the given size that has a *normalized* 2d Gaussian
 
-def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 3):
+def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 5):
 	# Creating the gaussian model with center at the center of the image
 	gaussian = astropy.modeling.functional_models.Gaussian2D(amplitude = 1, 
 	  x_mean = ((supersample*size[0])-1)/2, y_mean = ((supersample*size[1])-1)/2, 
@@ -37,23 +38,19 @@ def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 3)
 			gaussian.y_mean,gaussian.x_stddev,gaussian.y_stddev,gaussian.theta)
 	return psf/psf.sum()
 
-# Notes: 
-# Watch out for how to do the centering when the size in one direction is odd vs. even
 
-# To handle the covariance matrix, see the following
-# https://docs.astropy.org/en/stable/api/astropy.modeling.functional_models.Gaussian2D.html
-# https://www.unige.ch/sciences/astro/files/5413/8971/4090/2_Segransan_StatClassUnige.pdf Slide 18
-# https://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/
-# and feel free to use the first one for calculations
+# getpsf_hst gets the stored tinytim psf from the data directory and loads it in
+# watch out for subsampling in the HST psf
 
-# Before returning, normalize the PSF by dividing the whole 2d array by the total of the whole array
+def getpsf_hst(filename):
+	# Loading in the .fits object
+	fitsfile = astropy.io.fits.open(filename)
+	
+	# Getting data out of object
+	psf = fitsfile[0].data
 
-
-# test_getpsf_2dgau
-# Runs a test of getpsf_2dgau
-# inputs values big enough to make an image (300,300) of a rotaated 2d Guassian
-# checks that the sum of the returned image is 1
-# plots the image and saves to a file
+	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
+	return psf/psf.sum()
 
 def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersample = 1):
 	# Getting psf from getpsf_2dgau
@@ -71,8 +68,23 @@ def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersamp
 	#plt.savefig()		Make this have a place to save
 	plt.close()
 
+def test_getpsf_hst(filename):
+	# Getting the HST psf
+	psf = getpsf_hst(filename)
+
+	# Plot the psf to see what it looks like
+	plt.figure()
+	plt.imshow(psf, cmap='hot', interpolation='nearest')
+	plt.colorbar()
+	plt.show()
+	#plt.savefig()		Make this have a place to save
+	plt.close()
+	
+
+
 
 #test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]))
 #test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]), supersample = 2)
 #test_getpsf_2dgau(size = (40,40), cov = 4*np.array([[5,1.5],[1.5,1.5]]))
 
+#test_getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
