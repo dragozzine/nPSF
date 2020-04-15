@@ -34,7 +34,7 @@ import skimage.measure
 # in the function call, but if they are "None" you could use these values
 
 def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5, ycen = 49.5,
-                  psfscale = 3, psfheight = 1):
+                  psfscale = 5, psfheight = 1):
 	
 	# Rescaling the psf
 	psf = psfheight*psf
@@ -54,11 +54,9 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 	
 	# Shifting the full supersampled psf to the correct center
 	fullpsf = scipy.ndimage.shift(fullpsf, (xshift,yshift))
-	print(fullpsf.sum())
 	
 	# Now downsizing the supersampled array
 	psfimage = skimage.measure.block_reduce(fullpsf, (psfscale,psfscale))
-	print(psfimage.sum())
 
 	# Plotting the PSF image to check (remove this once fully functioning)	
 	#plt.figure()
@@ -74,45 +72,71 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 
 def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 	# Creates composite image of image passed in + psf image
-	imageonepsf = insertpsf_one(image = image, xcen = 10.5)
+	imageonepsf = insertpsf_one(image = image, xcen = 45.5, psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"))
 
 	# Plots the image
-	#plt.figure()
-	#plt.imshow(imageonepsf, cmap = "hot", interpolation = "nearest")
-	#plt.colorbar()
-	#plt.title("Composite image")
-	#plt.show()
-	#plt.close()
+	plt.figure()
+	plt.imshow(imageonepsf, cmap = "hot", interpolation = "nearest")
+	plt.colorbar()
+	plt.title("Composite image")
+	plt.show()
+	plt.close()
 
 
-def insertpsf_n(image = np.zeros((100,100)), psfs = np.array([getpsf_2dgau()]), 
+def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"), 
                 xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1])):
 	# Checking if inputs are all the same size
-	if not xcens.size == ycens.size == heights.size == psfs.shape[0]:
-		raise ValueError("psfs, xcens, ycens, and heights must be the same length")
+	if not xcens.size == ycens.size == heights.size:
+		raise ValueError("xcens, ycens, and heights must be the same length")
 
 	# Looping over parameters to insert psfs
 	for i in range(xcens.size):
-		image = insertpsf_one(image = image, psf = psfs[i], xcen = xcens[i], 
+		image = insertpsf_one(image = image, psf = psf, xcen = xcens[i], 
 		                      ycen = ycens[i], psfheight = heights[i])
 
-	# Plotting the composite image (remove when fully functioning)
-	#plt.figure()
-	#plt.imshow(image, cmap = "hot", interpolation = "nearest")
-	#plt.colorbar()
-	#plt.title("Multi PSF Composite image")
-	#plt.show()
-	#plt.close()
+	# Returns image after convolving with the cd kernel
+	return cd_convolve(image)
 
+def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
+	# Creates composite image of image passed in + psf image
+	psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
+	xcen_arr = np.array([45.0,30.45678,47.10])
+	ycen_arr = np.array([43.7,60.0,43.5])
+	height_arr = np.array([1.0,0.234,0.1])
+	image_npsfs = insertpsf_n(image = image, psf = psf, xcens = xcen_arr,
+				  ycens = ycen_arr, heights = height_arr)
 
+	# Plots the image
+	plt.figure()
+	plt.imshow(image_npsfs, cmap = "hot", interpolation = "nearest")
+	plt.colorbar()
+	plt.title("Composite image, w/ CD")
+	plt.show()
+	plt.close()
 
-# Small test case for insertpsf_n
-insertpsf_n(image = np.random.random(size = (100,100))*0.01, psfs = np.array([getpsf_2dgau(),
-getpsf_2dgau(),getpsf_2dgau()]), xcens = np.array([49.5,47.0,40.0]), ycens = np.array([49.5,49.23,54.98]),
-heights = np.array([1.0,0.3,0.2]))
+def cd_convolve(image):
+	# Defining the two charge diffusion kernels for ir and uv. For now I will use ir,
+	# but there could be a way of dealing with these to get a better value
+	cd_kernel_ir = np.array([ [0.002, 0.037, 0.002],
+				  [0.037, 0.844, 0.037],
+				  [0.002, 0.037, 0.002] ])
 
+	cd_kernel_uv = np.array([ [0.027, 0.111, 0.027],
+				  [0.111, 0.432, 0.111],
+				  [0.027, 0.111, 0.027] ])
 
+	# Convolving the image with the cd kernel
+	return scipy.ndimage.convolve( image, cd_kernel_ir, mode='constant', cval=0.0 )
 
-#test_insertonepsf
-# makes a simple image and PSF and inserts it at a particular point 
-# makes a plot of the image and saves it
+def make_image(paramsdf):
+	blank = np.zeros((100,100))
+
+	# Getting all of the inputs for insertpsf_n ready
+	# If needed getpsf_hst can be replaced with getpsf_2dgau to fit have gaussian psfs instead
+	# In the future, make this read the run_props dictionary to know which function to use
+	psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
+	xcen_arr = paramsdf["xcen"].values
+	ycen_arr = paramsdf["ycen"].values
+	height_arr = paramsdf["heights"].values
+	insertpsf_n(blank, psf = psf, xcens = xcen_arr, ycens = ycen_arr, heights = height_arr)
+
