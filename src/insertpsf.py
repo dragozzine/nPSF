@@ -61,12 +61,12 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 	print(psfimage.sum())
 
 	# Plotting the PSF image to check (remove this once fully functioning)	
-	plt.figure()
-	plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
-	plt.colorbar()
-	plt.title("PSF image")
-	plt.show()
-	plt.close()
+	#plt.figure()
+	#plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
+	#plt.colorbar()
+	#plt.title("PSF image")
+	#plt.show()
+	#plt.close()
 	
 	# Returns passed in image + psf image
 	return (image + psfimage)
@@ -77,12 +77,12 @@ def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 	imageonepsf = insertpsf_one(image = image, xcen = 10.5)
 
 	# Plots the image
-	plt.figure()
-	plt.imshow(imageonepsf, cmap = "hot", interpolation = "nearest")
-	plt.colorbar()
-	plt.title("Composite image")
-	plt.show()
-	plt.close()
+	#plt.figure()
+	#plt.imshow(imageonepsf, cmap = "hot", interpolation = "nearest")
+	#plt.colorbar()
+	#plt.title("Composite image")
+	#plt.show()
+	#plt.close()
 
 
 def insertpsf_n(image = np.zeros((100,100)), psfs = np.array([getpsf_2dgau()]), 
@@ -97,12 +97,12 @@ def insertpsf_n(image = np.zeros((100,100)), psfs = np.array([getpsf_2dgau()]),
 		                      ycen = ycens[i], psfheight = heights[i])
 
 	# Plotting the composite image (remove when fully functioning)
-	plt.figure()
-	plt.imshow(image, cmap = "hot", interpolation = "nearest")
-	plt.colorbar()
-	plt.title("Multi PSF Composite image")
-	plt.show()
-	plt.close()
+	#plt.figure()
+	#plt.imshow(image, cmap = "hot", interpolation = "nearest")
+	#plt.colorbar()
+	#plt.title("Multi PSF Composite image")
+	#plt.show()
+	#plt.close()
 
 
 

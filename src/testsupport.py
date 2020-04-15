@@ -79,4 +79,4 @@ def mm_make_geo_pos(objname, start, end, step):
 
 
 #test_runprops()
-print(test_mmparamdf())
+#print(test_mmparamdf())

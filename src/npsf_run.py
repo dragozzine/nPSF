@@ -76,9 +76,15 @@ def load_run_props(json_file):
     
     Output: run_props -- dictionary of properties of the run
     """
-    with open(json_file,'r') as file:
-        run_props = json.load(file)
-    return run_props
+    try:
+        with open(json_file,'r') as file:
+            run_props = json.load(file)
+        return run_props
+    except:
+        json_file='./src/'+json_file
+        with open(json_file,'r') as file:
+            run_props = json.load(file)
+        return run_props
 
 def read_run_props(run_props):
     """ Reads the dictionary run_props and saves each entry as a separate variable

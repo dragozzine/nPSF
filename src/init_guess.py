@@ -64,7 +64,7 @@ def init_guess(start_guess_df):
     dist_arr = []
     for col in start_guess_df.columns:
         name_dict[n] = col
-        infos = test_df[col].as_matrix()
+        infos = start_guess_df[col].as_matrix()
         mean1, stdev1 = infos[0],infos[1]
         if n == 0:
             dist_arr = np.random.normal(mean1,stdev1,10)
