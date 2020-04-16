@@ -20,8 +20,8 @@
 # drawn from this distribution. As before, write a test function 
 # to see that this works.  
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 def init_guess(start_guess_df):
     """This function will produce the initial guess used in nPSF.
@@ -76,6 +76,8 @@ def init_guess(start_guess_df):
     dict_vals = []
     for x in name_dict:
         dict_vals.append(name_dict[x])
+        
+    dist_arr = np.transpose(dist_arr)
     
     params_df = pd.DataFrame(dist_arr, columns = [dict_vals])
     
