@@ -55,7 +55,8 @@ def init_guess(start_guess_df):
     
     # A guess for the number of walkers and taking the data in 
     #    array form.
-    nwalkers = 100
+    nwalkers = input("Please enter the number of walkers.")
+    nwalkers = int(nwalkers)
     arrSet = start_guess_df.as_matrix()
     
     # Some code to help us get the names for the columns.
@@ -67,9 +68,9 @@ def init_guess(start_guess_df):
         infos = start_guess_df[col].as_matrix()
         mean1, stdev1 = infos[0],infos[1]
         if n == 0:
-            dist_arr = np.random.normal(mean1,stdev1,10)
+            dist_arr = np.random.normal(mean1,stdev1,nwalkers)
         else:
-            dist_arr = np.vstack((dist_arr,np.random.normal(mean1,stdev1,10)))
+            dist_arr = np.vstack((dist_arr,np.random.normal(mean1,stdev1,nwalkers)))
         
         n += 1
     
