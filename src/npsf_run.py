@@ -194,7 +194,7 @@ nwalkers, nburnin, nsteps, output_filename = read_run_props(run_props)
 # Get initial guess (with init_guess.py)
 # This uses test data from guess_test.py
 params_df = make_test_df()
-p0_df = init_guess(params_df)
+p0_df = init_guess(params_df, nwalkers)
 p0, change_dict = params_to_fitarray(p0_df)
 
 # Get ndim

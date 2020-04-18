@@ -23,7 +23,7 @@
 import numpy as np
 import pandas as pd
 
-def init_guess(start_guess_df):
+def init_guess(start_guess_df, nwalkers):
     """This function will produce the initial guess used in nPSF.
     
     Input: 
@@ -32,6 +32,8 @@ def init_guess(start_guess_df):
         parameter names, the first row is the mean value for each 
         parameter, and the second row is the standard deviation 
         for each parameter.
+    nwalkers - number of walkers. Added by Rochelle to make
+        compatible with run_props in npsf_run.py 4/17/20
     
     Returns:
     
@@ -55,10 +57,13 @@ def init_guess(start_guess_df):
     
     # A guess for the number of walkers and taking the data in 
     #    array form.
-    nwalkers = input("Please enter the number of walkers.")
-    nwalkers = int(nwalkers)
-    arrSet = start_guess_df.as_matrix()
     
+    # Comented out by Rochelle to make compatible with run_props 4/17/20
+    #nwalkers = input("Please enter the number of walkers.")
+    #nwalkers = int(nwalkers)
+
+    arrSet = start_guess_df.as_matrix()
+      
     # Some code to help us get the names for the columns.
     name_dict = {0:"Junk"}
     n = 0

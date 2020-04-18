@@ -5,8 +5,6 @@ sys.path.insert(1,".")
 import numpy as np
 import pandas as pd
 
-from init_guess import init_guess
-
 def make_test_df():
     # Create a dataframe of "averages" and "standard deviations" that init_guess
     # will use.
@@ -15,13 +13,3 @@ def make_test_df():
     colies = ["x1","y1","h1","x2","y2","h2"]
     test_df = pd.DataFrame(foob_arr, columns = colies)
     return test_df
-
-test_df = make_test_df()
-
-print("This is the test dataframe")
-print(test_df)
-
-init_guess_df = init_guess(test_df)
-
-print("This is the dataframe of Monte Carlo values")
-print(init_guess_df)
