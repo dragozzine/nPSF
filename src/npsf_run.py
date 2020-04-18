@@ -34,12 +34,15 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import corner
 import json
-# from likelihood import log_probability # Jarrod's code for EnsembleSampler
+from params import params_to_fitarray
+from params import fitarray_to_paramsdf
+from init_guess import init_guess
+from likelihood import log_probability # Jarrod's code for EnsembleSampler
+from guess_test import make_test_df
 # from params.py import df_to_array, npsf_init_guess()
 np.random.seed(42)
 
 json_file = "run_props.json"
-ndim = 5 # will get from Ian's params.py code
 # npsf_likelihood -- from Jarrod?
 
 def create_run_props():
@@ -169,7 +172,7 @@ def make_hist(flatchain, param):
     plt.xlabel(r"$\theta_1$")
     plt.ylabel(r"$p(\theta_1)$")
     plt.gca().set_yticks([]);
-    plt.savefig('../results/emcee_Gauss_hist.png')
+    plt.savefig('../results/emcee_hist_test.png')
     return
 
 def make_corner_plot(flatchain):
@@ -181,28 +184,24 @@ def make_corner_plot(flatchain):
     Output: Saves an image of the corner plot. Returns nothing.
     """
     fig = corner.corner(flatchain)#, labels=labels, truths=[m_true, b_true, np.log(f_true)])
-    fig.savefig('../results/emcee_corner_Gaussian.png')
+    fig.savefig('../results/emcee_corner_test.png')
     return
 
 ### Load run_props from JSON file ###
 run_props = load_run_props(json_file)
 nwalkers, nburnin, nsteps, output_filename = read_run_props(run_props)
 
-#######################################
-### For use when params.py is ready ###
+# Get initial guess (with init_guess.py)
+# This uses test data from guess_test.py
+params_df = make_test_df()
+p0_df = init_guess(params_df)
+p0, change_dict = params_to_fitarray(p0_df)
 
-## Get initial guesses parameters, from Ian
-#guesses, change_dict = npsf_init_guess(run_props, nwalkers) # Is this from Ian? What is the output of this function?
-
-## Place in numpy array
-#p0 = np.zeros((ndim, walkers))
-#for i in range(ndim):
-#    p0[i,:] = guesses[i+1,:] # why is it i+1?
-
-########################################
+# Get ndim
+ndim = np.shape(p0)[1]
 
 # Get initial guesses (for test case)
-p0 = np.random.rand(nwalkers, ndim) # From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
+#p0 = np.random.rand(nwalkers, ndim) # From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
 
 # Get means and cov (for test code)
 means, cov = means_cov()
