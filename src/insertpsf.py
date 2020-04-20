@@ -3,38 +3,40 @@
 # outline from Darin Ragozzine
 # April 2, 2020
 #
-# This script includes various functions for inserting PSFs into images
-#
-# insertonepsf(image, psf, xcen, ycen, psfscale, psfheight) - inserts one PSF
-#   taken from the psf 2-d numpy array into the image at the position xcen, ycen
-#   scaled in size by psfscale and multiplied by psfheight
-# LATER: quickinsertonepsf - like insertonepsf but xcen, ycen, and psfscale are all integers
-# LATER?: insertpsf_insertNpsfs() - loops over insertonepsf
-# 
-# test_insertonepsf - tests insertonepsf
-# 
-# 
+# Outline completely filled in. Added various functions to insert psfs and make images
+# Benjamin Proudfoot 04/20/20
 
 import numpy as np
 from getpsf import *
 import scipy.ndimage
 import skimage.measure
 
-# insertonepsf
-# Inputs:
-# - 2-dimensional numpy array "image" where PSF will be inserted, default = np.zeros(100,100)
-# - 2-dimensional numpy array "psf" which will be inserted, default = getpsf_2dgau()
-# - xcen: position in the x-direction of the center of the PSF, default=center of image
-# - ycen: position in the y-direction of the center of the PSF,  default=center of image
-# - psfscale: the super/sub-sampling scale to be used for the PSF, default=1
-# - psfheight: the height of the PSF, e.g., the PSF is multipled by this number when inserted, default=1
-# Output: 2-d numpy array of the image with the added PSF
-
 # Note, some of the defaults above may not be able to be implemented as actual "defaults"
 # in the function call, but if they are "None" you could use these values
 
 def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5, ycen = 49.5,
                   psfscale = 5, psfheight = 1):
+
+	"""
+	Takes a psf created by getpsf.py and inserts it into an input image at the location
+	specified with the correct supersampling ratios. 
+
+	Inputs:
+		image: an ndarray to insert the psf into (default is 100x100 array of zeros)
+	
+		psf: an ndarray created by a function in get_psf
+	
+		xcen: float, the x-position to place the psf
+
+		ycen: float, the y-position to place the psf
+
+		psfscale: int, the super sampling ratio to work with
+		
+		psfheight: float, the total integrated flux of the psf
+
+	Outputs:
+		ndarray of the combined image + psf
+	"""
 	
 	# Rescaling the psf
 	psf = psfheight*psf
@@ -58,19 +60,22 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 	# Now downsizing the supersampled array
 	psfimage = skimage.measure.block_reduce(fullpsf, (psfscale,psfscale))
 
-	# Plotting the PSF image to check (remove this once fully functioning)	
-	#plt.figure()
-	#plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
-	#plt.colorbar()
-	#plt.title("PSF image")
-	#plt.show()
-	#plt.close()
-	
 	# Returns passed in image + psf image
 	return (image + psfimage)
 
 
 def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
+	"""
+	Runs a simple test for insertpsf_one and plots the result
+
+	Inputs:
+		image: ndarray of image to insert a test psf into (default is
+			a 100x100 array of random noise)
+	
+	Outputs:
+		none
+	"""
+
 	# Creates composite image of image passed in + psf image
 	imageonepsf = insertpsf_one(image = image, xcen = 45.5, psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"))
 
@@ -85,6 +90,25 @@ def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 
 def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"), 
                 xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1])):
+	"""
+	A function which provides a wrapper for looping over insertpsf_one.
+
+	Inputs:
+		image: ndarray to start with. Default is 100x100 array of zeros.
+
+		psf: ndarray, created using getpsf.py with which to create the image
+
+		xcens: ndarray with size 1x(number of psfs to add) of the x-positions of the psfs
+
+		ycens: ndarray with size 1x(number of psfs to add) of the y-positions of the psfs
+
+		heights: ndarray with size 1x(number of psfs to add) of the heights of the psfs
+
+	Outputs:
+		an ndarray with psfs added to the input image. Note that the output image has
+		been convolved with the charge diffusion kernel.
+	"""
+
 	# Checking if inputs are all the same size
 	if not xcens.size == ycens.size == heights.size:
 		raise ValueError("xcens, ycens, and heights must be the same length")
@@ -98,6 +122,16 @@ def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_2
 	return cd_convolve(image)
 
 def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
+	"""
+	Runs a simple test for insertpsf_n and plots the result.
+
+	Inputs:
+		image: ndarray to insert psfs into. Default is random noise.
+
+	Outouts:
+		none
+	"""
+
 	# Creates composite image of image passed in + psf image
 	psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
 	xcen_arr = np.array([45.0,30.45678,47.10])
@@ -115,6 +149,16 @@ def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
 	plt.close()
 
 def cd_convolve(image):
+	"""
+	A function to model WC3 charge diffusion effects.
+
+	Inputs:
+		image: ndarray, image to apply CD effects to.
+	
+	Outputs:
+		image with CD implemented
+	"""
+
 	# Defining the two charge diffusion kernels for ir and uv. For now I will use ir,
 	# but there could be a way of dealing with these to get a better value
 	cd_kernel_ir = np.array([ [0.002, 0.037, 0.002],
@@ -129,6 +173,18 @@ def cd_convolve(image):
 	return scipy.ndimage.convolve( image, cd_kernel_ir, mode='constant', cval=0.0 )
 
 def make_image(paramsdf):
+	"""
+	A function which creates an image based on the parameters dataframe. This scales
+	well to adding n psfs in the image.
+
+	Inputs:
+		paramsdf: dataframe containing all of the parameters.
+	
+	outputs:
+		final image with psfs added and CD implemented
+	"""
+	
+	# Starting with blankl image
 	blank = np.zeros((100,100))
 
 	# Getting all of the inputs for insertpsf_n ready
@@ -138,5 +194,5 @@ def make_image(paramsdf):
 	xcen_arr = paramsdf["xcen"].values
 	ycen_arr = paramsdf["ycen"].values
 	height_arr = paramsdf["heights"].values
-	insertpsf_n(blank, psf = psf, xcens = xcen_arr, ycens = ycen_arr, heights = height_arr)
+	return insertpsf_n(blank, psf = psf, xcens = xcen_arr, ycens = ycen_arr, heights = height_arr)
 
