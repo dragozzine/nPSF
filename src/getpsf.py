@@ -2,14 +2,11 @@
 # part of nPSF
 # outline from Darin Ragozzine
 # April 2, 2020 
-#
-# This script includes various functions for getting (or making) PSFs.
 # 
-# getpsf_2dgau(shape, covariance) - returns a centered 2D Guassian with the given shape and covariance
-# LATER: getpsf_hst
-# 
-# It also includes some test functions
-# test_getpsf_2dgau
+# Outline completely filled in and all functions tested
+# Benjamin Proudfoot 04/20/20
+
+
 
 import math
 import numpy as np
@@ -17,14 +14,25 @@ import astropy.modeling.functional_models
 import astropy.io.fits
 import matplotlib.pyplot as plt
 
-# getpsf_2dgau
-# Inputs: 
-#  - size of psf to return (usually a square, default=(21,21)
-#    = remember that you'll probably want to supersample your PSF
-#  - covariance matrix that describes the shape of the 2d Guassian, default=((1,0),(0,1))
-# Output: a numpy 2d array with the given size that has a *normalized* 2d Gaussian
-
 def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 5):
+	"""
+	Creates a psf with a gaussian profile centered at the center of the output
+	array/image
+
+	Inputs:
+		size: tuple of size 2 with each entry being the length of an axis
+
+		cov: a covariance matrix specifying the shape of the gaussian profile
+
+		supersample: a ratio at which to super sample the psf
+				for example: specifying a 21x21 image with a super sample
+					     ratio of 5, will return a 105x105 image
+
+	Outputs:
+		array/image of a psf with a gaussian profile
+
+	"""
+
 	# Creating the gaussian model with center at the center of the image
 	gaussian = astropy.modeling.functional_models.Gaussian2D(amplitude = 1, 
 	  x_mean = ((supersample*size[0])-1)/2, y_mean = ((supersample*size[1])-1)/2, 
@@ -39,10 +47,18 @@ def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 5)
 	return psf/psf.sum()
 
 
-# getpsf_hst gets the stored tinytim psf from the data directory and loads it in
-# watch out for subsampling in the HST psf
 
 def getpsf_hst(filename):
+	"""
+	Creates an array/image from a specifed TinyTim file.
+
+	Inputs:
+		filename: a string specifying the location of the TinyTim psf
+
+	Outputs:
+		an array/image of an HST psf
+	"""
+
 	# Loading in the .fits object
 	fitsfile = astropy.io.fits.open(filename)
 	
@@ -52,7 +68,24 @@ def getpsf_hst(filename):
 	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
 	return psf/psf.sum()
 
+
+
+
 def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersample = 1):
+	"""
+	Runs a simple test for getpsf_2dgau and plots an image of the psf.
+
+	Inputs:
+		size: tuple of size 2 specifying the lengths of each axis in the final image
+	
+		cov: a covariance matrix specifying the shape of the 2d gaussian
+
+		supersample: a ratio at which to supersample the psf
+	
+	Outputs:
+		none
+	"""
+
 	# Getting psf from getpsf_2dgau
 	psf = getpsf_2dgau(size = size, cov = cov, supersample = supersample)
 
@@ -69,6 +102,16 @@ def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersamp
 	plt.close()
 
 def test_getpsf_hst(filename):
+	"""
+	Runs a simple test for getpsf_hst and plots an image of the psf.
+
+	Inputs:
+		filename: a string specifying the location of the TinyTim psf.
+	
+	Outputs:
+		none
+	"""
+
 	# Getting the HST psf
 	psf = getpsf_hst(filename)
 
@@ -81,10 +124,3 @@ def test_getpsf_hst(filename):
 	plt.close()
 	
 
-
-
-#test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]))
-#test_getpsf_2dgau(size = (20,20), cov = np.array([[5,1.5],[1.5,1.5]]), supersample = 2)
-#test_getpsf_2dgau(size = (40,40), cov = 4*np.array([[5,1.5],[1.5,1.5]]))
-
-#test_getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
