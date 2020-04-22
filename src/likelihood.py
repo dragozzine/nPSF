@@ -5,6 +5,10 @@
 #
 # This script includes various functions for calculating likelihoods
 #
+#Updates by Jarrod Hansen 
+#April 22, 2019
+
+
 # log_likelihood(parameter array) - returns the log of the prior probability for the given parameters
 # LATER: log_likelihood_df(parameters dataframe, priors dataframe,observations dataframe) 
 # - returns the model dataframe
@@ -34,6 +38,8 @@
 #    if not np.isfinite(lp):
 #        return -np.inf
 #    return lp + log_likelihood(theta, x, y, yerr)
+
+
 import math
 import numpy as np
 from getpsf import getpsf_2dgau
@@ -43,12 +49,16 @@ from scipy.stats import poisson
 def log_likelihood(image,parameters):
     xsize=len(image)
     ysize=len(image[1])
+    
     xpos1=parameters[1]
     ypos1=parameters[2]
     height1=parameters[3]
     xpos2=parameters[4]
     ypos2=parameters[5]
     height2=parameters[6]
+    #The way this is set up the sizes must be integers meaning you cannot search for subpixel variation
+    #in the quality of the fits. I think this would be possible to do but is beond the scope of the current project.
+    
     xpsfsize=parameters[7] 
     ypsfsize=parameters[8] 
     #Size could be a fixed value or something decied by emcee based on the image size to make sure
@@ -57,8 +67,12 @@ def log_likelihood(image,parameters):
     #These are the parameters we need to be able to calulate the likelihood
     #I looked at Ians code and could not figure out how each of these are embedded in his dataframe
     #We will need to write a code to extract the parameters i need
-    psf1=height1*getpsf_2dgau((xpsfsize,ypsfsize),np.array([[1,0],[0,1]]), 1)
-    psf2=height2*getpsf_2dgau((xpsfsize,ypsfsize),np.array([[1,0],[0,1]]), 1)
+    
+    psf=getpsf_2dgau((xpsfsize,ypsfsize),np.array([[1,0],[0,1]]), 1)
+    psf1=height1*psf
+    psf2=height2*psf
+    #fetches psfs for the two objects
+    
     x=0
     y=0
     residuals=image
@@ -68,6 +82,7 @@ def log_likelihood(image,parameters):
                 residuals=residuals[x][y]-psf1[x-xpos1+xsize/2+.5][y-ypos1+ysize/2+.5]
             y++
         x++
+    #Calculates the residuals left behind after subtracting the first psf
     
     x=0
     y=0
@@ -77,12 +92,13 @@ def log_likelihood(image,parameters):
                  residuals=residuals[x][y]-psf2[x-xpos2+xsize/2+.5][y-ypos2+ysize/2+.5]
             y++
         x++
-        
+    #Calculates the residuals left behind after subtracting the second psf    
         
     loglike=0
     x=0
     y=0
-    mu=1 #We will need to change this to something that represents the noise profile better
+    mu=1 
+    #We will need to change this to something that represents the noise profile better
     while x < (xsize):
         while y < (ysize):
             loglike=loglike+logpmf(residuals[x][y],mu,loc=0)
