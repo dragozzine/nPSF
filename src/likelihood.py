@@ -67,33 +67,13 @@ def log_likelihood(image,parameters):
     #These are the parameters we need to be able to calulate the likelihood
     #I looked at Ians code and could not figure out how each of these are embedded in his dataframe
     #We will need to write a code to extract the parameters i need
-    
-    psf=getpsf_2dgau((xpsfsize,ypsfsize),np.array([[1,0],[0,1]]), 1)
-    psf1=height1*psf
-    psf2=height2*psf
-    #fetches psfs for the two objects
-    
-    x=0
-    y=0
-    residuals=image
-    while x < (xsize):
-        while y < (ysize):
-            if (x-xpos1+xpsfsize/2>-1 && y-ypos1+ypsfsize/2>-1 && x-xpos1+xpsfsize/2<xpsfsize && y-ypos1+ypsfsize/2<ypsfsize):
-                residuals=residuals[x][y]-psf1[x-xpos1+xsize/2+.5][y-ypos1+ysize/2+.5]
-            y++
-        x++
-    #Calculates the residuals left behind after subtracting the first psf
-    
-    x=0
-    y=0
-    while x < (xsize):
-        while y < (ysize):
-            if (x-xpos2+xpsfsize/2>-1 && y-ypos2+ypsfsize/2>-1 && x-xpos2+xpsfsize/2<xpsfsize && y-ypos2+ypsfsize/2<ypsfsize):
-                 residuals=residuals[x][y]-psf2[x-xpos2+xsize/2+.5][y-ypos2+ysize/2+.5]
-            y++
-        x++
-    #Calculates the residuals left behind after subtracting the second psf    
-        
+
+ 
+    psfimage=insertpsf_one(image = np.zeros((xsize,ysize)), psf = getpsf_2dgau(), xcen = xpos1, ycen = ypos1,
+                  psfscale = 5, psfheight = height1)
+    psfimage=psfimage+insertpsf_one(psfimage, psf = getpsf_2dgau(), xcen = xpos2, ycen = ypos2,
+                  psfscale = 5, psfheight = height2)   
+    residuals=image-psfimage
     loglike=0
     x=0
     y=0
