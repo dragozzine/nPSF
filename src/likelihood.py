@@ -42,62 +42,54 @@
 
 import math
 import numpy as np
-from getpsf import getpsf_2dgau
-from scipy.stats import poisson
+from insertpsf import *
+import scipy.stats
 
 
-def log_likelihood(image,parameters):
-    xsize=len(image)
-    ysize=len(image[1])
+def log_likelihood(parameters, image, psf):
+    xsize = image.shape[0]
+    ysize = image.shape[1]
     
-    xpos1=parameters[1]
-    ypos1=parameters[2]
-    height1=parameters[3]
-    xpos2=parameters[4]
-    ypos2=parameters[5]
-    height2=parameters[6]
-    #The way this is set up the sizes must be integers meaning you cannot search for subpixel variation
-    #in the quality of the fits. I think this would be possible to do but is beond the scope of the current project.
-    
-    xpsfsize=parameters[7] 
-    ypsfsize=parameters[8] 
-    #Size could be a fixed value or something decied by emcee based on the image size to make sure
-    #that your psf is not bigger then the image and make sure its an odd number
-    
+    x1, y1, h1, x2, y2, h2 = parameters
+
+    xcens = np.array([x1,x2])
+    ycens = np.array([y1,y2])
+    heights = np.array([h1,h2])
+
     #These are the parameters we need to be able to calulate the likelihood
     #I looked at Ians code and could not figure out how each of these are embedded in his dataframe
     #We will need to write a code to extract the parameters i need
 
+    # Priors for now... since priors never got completed
+    if x1 < 0 or x1 > xsize or x2 < 0 or x2 > xsize:
+        return -np.inf
+    if y1 < 0 or y1 > ysize or y2 < 0 or y2 > ysize:
+        return -np.inf
+    if h1 < 0 or h2 < 0:
+        return -np.inf
+
+    psfimage = insertpsf_n(image = np.zeros((xsize,ysize)), psf = psf,
+				xcens = xcens, ycens = ycens, heights = heights)
  
-    psfimage=insertpsf_one(image = np.zeros((xsize,ysize)), psf = getpsf_2dgau(), xcen = xpos1, ycen = ypos1,
-                  psfscale = 5, psfheight = height1)
-    psfimage=psfimage+insertpsf_one(psfimage, psf = getpsf_2dgau(), xcen = xpos2, ycen = ypos2,
-                  psfscale = 5, psfheight = height2)   
     residuals=image-psfimage
     loglike=0
-    x=0
-    y=0
-    mu=1 
-    #We will need to change this to something that represents the noise profile better
-    while x < (xsize):
-        while y < (ysize):
-            loglike=loglike+logpmf(residuals[x][y],mu,loc=0)
-            y++
-        x++
-        
+    mu=200
+    #We will need to change this to something that represents the noise profile better?
+#    for i in range(xsize):
+#        for j in range(ysize):
+#            add = scipy.stats.poisson.logpmf(int(residuals[i,j]), mu)
+#            loglike += add
+            #print(i,j,add)
+            #print(residuals[i,j])
+
+    loglike = scipy.stats.poisson.logpmf(np.rint(residuals),mu).sum()
     return loglike
-    
-
-    
-
 
 def log_probability(image,parameters):
-    from likelihood import log_likelihood 
-	lp = log_prior(paramaters)#I did not see anything in this code yet
-	if not np.isfinite(lp):
-		return 0.5
-		#return -np.inf
-	return lp + log_likelihood(image,parameters)
+    lp = log_prior(parameters)#I did not see anything in this code yet
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + log_likelihood(image,parameters)
 
 
 # test log_likelihood

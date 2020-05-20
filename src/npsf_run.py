@@ -25,6 +25,7 @@ Outputs:
 
 ### THIS CODE RUNS WITH TEST DATA ###
 
+from statsmodels.regression.linear_model import yule_walker
 import numpy as np
 import emcee
 import sys
@@ -34,11 +35,14 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import corner
 import json
+#import tqdm
 from params import params_to_fitarray
 from params import fitarray_to_paramsdf
 from init_guess import init_guess
-from likelihood import log_probability # Jarrod's code for EnsembleSampler
+from likelihood import log_likelihood # Jarrod's code for EnsembleSampler
 from guess_test import make_test_df
+from getpsf import *
+from convergence_tests import *
 # from params.py import df_to_array, npsf_init_guess()
 np.random.seed(42)
 
@@ -150,10 +154,11 @@ def burnin(p0, nburnin):
     Output: the state where the sampler will start, either p0 or the state
       after the burnin, depending on whether or not the burnin was run
     """
+    print("Beginning the burn in")
     if nburnin == 0:
         return p0
     else:
-        state = sampler.run_mcmc(p0, nburnin)
+        state = sampler.run_mcmc(p0, nburnin, progress = True)
         sampler.reset()
         return state
 
@@ -183,9 +188,26 @@ def make_corner_plot(flatchain):
 
     Output: Saves an image of the corner plot. Returns nothing.
     """
-    fig = corner.corner(flatchain)#, labels=labels, truths=[m_true, b_true, np.log(f_true)])
+    fig = corner.corner(flatchain, labels = np.array(["x1","y1","h1","x2","y2","h2"]),
+                        plot_datapoints = False, color = "blue", fill_contours = True,
+                        truths = [49.5, 50.2, 2000, 43.0, 57.3, 800], show_titles = True
+                        )
     fig.savefig('../results/emcee_corner_test.png')
     return
+
+def make_walker_plots(chain):
+    numparams = chain.shape[2]
+    numwalkers = chain.shape[1]
+    numgens = chain.shape[0]
+    names = np.array(["x1","y1","h1","x2","y2","h2"])
+    for i in range(numparams):
+        plt.figure()
+        for j in range(numwalkers):
+            plt.plot(np.reshape(chain[0:numgens,j,i], numgens))
+        plt.ylabel(names[i])
+        plt.xlabel("Generation")
+        plt.savefig("../results/" + names[i] + "_walkers.png")
+        plt.close()
 
 ### Load run_props from JSON file ###
 run_props = load_run_props(json_file)
@@ -197,6 +219,8 @@ params_df = make_test_df()
 p0_df = init_guess(params_df, nwalkers)
 p0, change_dict = params_to_fitarray(p0_df)
 
+print(p0.shape)
+
 # Get ndim
 ndim = np.shape(p0)[1]
 
@@ -206,26 +230,59 @@ ndim = np.shape(p0)[1]
 # Get means and cov (for test code)
 means, cov = means_cov()
 
+# Loading in test image here
+image = np.loadtxt("../data/testimage_2objs.txt")
+psf = getpsf_2dgau()
+
 ###########################################################
 ### This is where the code could check for bad walkers. ### 
 ### I have not written this functionality yet.          ###
 ###########################################################
 
+reset = 0
+for i in range(nwalkers):
+    llhood = log_likelihood(p0[i,:], image, psf)
+    while (llhood == -np.Inf):
+        if(reset % 500 == 0) and (reset != 0):
+            print("ERROR: Initial guesses for walkers may be bad.")
+            print("Initial guesses have been reset " + str(reset) + " times")
+            abort = input("Abort script? (yes/no) ")
+            while (abort != "yes") and (abort != "no"):
+                print("Invalid input")
+                abort = input("Abort script? (yes/no) ")
+            if abort == "yes":
+                sys.exit()
+        # Resetting parameters
+        p0_dfreset = init_guess(params_df, 1)
+        p0_reset, change_dict = params_to_fitarray(p0_dfreset)
+        p0[i,:] = p0_reset
+        llhood = log_likelihood(p0[i,:]*(-1), image, psf)
+        reset += 1
+
 # Create sampler object
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, args = [means, cov] )
+sampler = emcee.EnsembleSampler(nwalkers, ndim, log_likelihood, args = [image, psf])
+#moves = emcee.moves.StretchMove())
 
 # Burnin (optional, default 0 steps)
 state = burnin(p0, nburnin)
 
 # Sample
-sampler.run_mcmc(state, nsteps)
+print("Beginning sample")
+sampler.run_mcmc(state, nsteps, progress = True)
 
 # Get chain
 chain = sampler.get_chain()
 flatchain = sampler.get_chain(flat = True)
 
+print(chain.shape)
+print(flatchain.shape)
+
 # Make corner plot
 make_corner_plot(flatchain)
+
+make_walker_plots(chain)
+
+testconvergence_geweke(sampler)
 
 # save chain
 # Convert chain to df (Ian)

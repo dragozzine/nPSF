@@ -10,6 +10,8 @@ import numpy as np
 from getpsf import *
 import scipy.ndimage
 import skimage.measure
+import matplotlib.colors as colors
+
 
 # Note, some of the defaults above may not be able to be implemented as actual "defaults"
 # in the function call, but if they are "None" you could use these values
@@ -121,7 +123,7 @@ def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_2
 	# Returns image after convolving with the cd kernel
 	return cd_convolve(image)
 
-def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
+def test_insertpsf_n(image = np.random.random(size = (100,100))*10.0):
 	"""
 	Runs a simple test for insertpsf_n and plots the result.
 
@@ -136,7 +138,7 @@ def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
 	psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits")
 	xcen_arr = np.array([45.0,30.45678,47.10])
 	ycen_arr = np.array([43.7,60.0,43.5])
-	height_arr = np.array([1.0,0.234,0.1])
+	height_arr = np.array([1000.0,234.0,100.0])
 	image_npsfs = insertpsf_n(image = image, psf = psf, xcens = xcen_arr,
 				  ycens = ycen_arr, heights = height_arr)
 
@@ -144,7 +146,7 @@ def test_insertpsf_n(image = np.random.random(size = (100,100))*0.01):
 	plt.figure()
 	plt.imshow(image_npsfs, cmap = "hot", interpolation = "nearest")
 	plt.colorbar()
-	plt.title("Composite image, w/ CD")
+	#plt.title("")
 	plt.show()
 	plt.close()
 

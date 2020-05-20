@@ -12,6 +12,8 @@ import math
 import numpy as np
 import astropy.modeling.functional_models
 import astropy.io.fits
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 5):
@@ -71,7 +73,7 @@ def getpsf_hst(filename):
 
 
 
-def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersample = 1):
+def test_getpsf_2dgau(size = (10,10), cov = np.array([[5,1],[1,5]]), supersample = 1):
 	"""
 	Runs a simple test for getpsf_2dgau and plots an image of the psf.
 
@@ -96,7 +98,7 @@ def test_getpsf_2dgau(size = (300,300), cov = np.array([[5,1],[1,5]]), supersamp
 	# Plot the psf to see what it looks like
 	plt.figure()
 	plt.imshow(psf, cmap='hot', interpolation='nearest')
-	plt.colorbar()
+	#plt.colorbar()
 	plt.show()
 	#plt.savefig()		Make this have a place to save
 	plt.close()

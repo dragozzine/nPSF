@@ -1,1 +1,1 @@
-{"output_filename": "results.csv", "nwalkers": 64, "nsteps": 10000, "nburnin": 100}
+{"output_filename": "results.csv", "nwalkers": 40, "nsteps": 5000, "nburnin": 0}
