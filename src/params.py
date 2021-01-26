@@ -40,7 +40,7 @@ def params_to_fitarray(param_df):
     #    -Just what will the fixation values array look like, if I use those?
     
     # Takes the dataframe and transforms it into a matrix that emcee can use.
-    emcee_arr = param_df.as_matrix()
+    emcee_arr = param_df.to_numpy()
     
     # Here we create the dictionary. We need to load it with a junk value to start.
     # We also include an integer for the purposes of creating the dictionary keys.

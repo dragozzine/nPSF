@@ -82,7 +82,13 @@ def log_likelihood(parameters, image, psf):
             #print(i,j,add)
             #print(residuals[i,j])
 
-    loglike = scipy.stats.poisson.logpmf(np.rint(residuals),mu).sum()
+#    loglike = scipy.stats.poisson.logpmf(np.rint(residuals),mu).sum()
+# TODO: FIX LIKELIHOOD
+# Above was in nPSF before Winter 2021 Physics 529
+# But this seemed totally wrong and mu=200 was arbitrary
+# DR added this on 1/25/2021:
+    loglike = scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image)).sum()
+
     return loglike
 
 def log_probability(image,parameters):

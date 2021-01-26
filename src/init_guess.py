@@ -62,7 +62,7 @@ def init_guess(start_guess_df, nwalkers):
     #nwalkers = input("Please enter the number of walkers.")
     #nwalkers = int(nwalkers)
 
-    arrSet = start_guess_df.as_matrix()
+    arrSet = start_guess_df.to_numpy()
       
     # Some code to help us get the names for the columns.
     name_dict = {0:"Junk"}
@@ -70,7 +70,7 @@ def init_guess(start_guess_df, nwalkers):
     dist_arr = []
     for col in start_guess_df.columns:
         name_dict[n] = col
-        infos = start_guess_df[col].as_matrix()
+        infos = start_guess_df[col].to_numpy()
         mean1, stdev1 = infos[0],infos[1]
         if n == 0:
             dist_arr = np.random.normal(mean1,stdev1,nwalkers)

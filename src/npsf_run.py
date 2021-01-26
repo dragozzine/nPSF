@@ -42,7 +42,7 @@ from init_guess import init_guess
 from likelihood import log_likelihood # Jarrod's code for EnsembleSampler
 from guess_test import make_test_df
 from getpsf import *
-from convergence_tests import *
+from analysis import *
 # from params.py import df_to_array, npsf_init_guess()
 np.random.seed(42)
 
@@ -234,14 +234,11 @@ means, cov = means_cov()
 image = np.loadtxt("../data/testimage_2objs.txt")
 psf = getpsf_2dgau()
 
-###########################################################
-### This is where the code could check for bad walkers. ### 
-### I have not written this functionality yet.          ###
-###########################################################
-
+# check for bad walkers / bad initial guesses
 reset = 0
 for i in range(nwalkers):
     llhood = log_likelihood(p0[i,:], image, psf)
+    print(i, p0[i,:], llhood)
     while (llhood == -np.Inf):
         if(reset % 500 == 0) and (reset != 0):
             print("ERROR: Initial guesses for walkers may be bad.")
@@ -257,6 +254,7 @@ for i in range(nwalkers):
         p0_reset, change_dict = params_to_fitarray(p0_dfreset)
         p0[i,:] = p0_reset
         llhood = log_likelihood(p0[i,:]*(-1), image, psf)
+        print(p0_reset, llhood, i, reset)
         reset += 1
 
 # Create sampler object
