@@ -1,0 +1,3 @@
+Homework 1/22: Number 6
+
+To be honest, I am not sure what I could do to contribute. I see that there are holes that need to be filled (you gave us a few examples in the homework for 1/25), however, I do not have a good sense of where my skills (or lack of experience) would fit best. My first instinct is to try to make a 3-PSF test image because it would give me a more visual confirmation that the code I am writing is correct. However, it may be more benneficial for my statistical learning to try to tackle the GAIA likelihood calculations. If you think that is an appropriate work load I would love to learn the statisics better. My mind is slow to capture and internalize the concepts. 
