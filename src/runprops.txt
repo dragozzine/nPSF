@@ -1,0 +1,25 @@
+{
+	# Initialization properties
+	"input_image": "../data/testimage_2objs.txt",
+	"output_filename": "results.csv",
+	"nwalkers": 40,
+	"nsteps": 200,
+	"nburnin": 10,
+
+	"starting_guess": "",
+
+
+	# TinyTim input parameters
+	"det_int" = 15,
+	"chip" = 1,
+	"xpos" = 1024,
+	"ypos" = 1024,
+	"fmin" = -5,
+	"fmax" = 5,
+	"fspace" = 0.1,
+	"filter" = "F350LP",
+	"sample_factor" = 8,
+	"psf_size" = 2.0,
+
+
+}

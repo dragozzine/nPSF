@@ -4,57 +4,41 @@
 # April 2, 2020
 #
 # This script includes various functions for calculating likelihoods
-#
-#Updates by Jarrod Hansen 
-#April 22, 2019
-
-
-# log_likelihood(parameter array) - returns the log of the prior probability for the given parameters
-# LATER: log_likelihood_df(parameters dataframe, priors dataframe,observations dataframe) 
-# - returns the model dataframe
-# log_probability(parameter array) - returns the log posterior probability that emcee uses
-# LATER: draw_prior - draws from the priors dataframe
-# 
-# test_log_likelihood - tests log_likelihood
-
-
-# log_likelihood
-# Inputs:
-# - parameter vector [which parameters are which and go with which priors to be handled LATER]
-# Outputs:
-# - the (natural) log likelihood for these parameters
-# including -np.inf for unallowed priors
-
-
-# log_probability
-# Inputs: 
-# - parameter vector [which parameters are which and go with which priors to be handled LATER]
-# Outputs:
-# - the (natural) log posterior probability for these parameters
-# 
-# Example from emcee (https://emcee.readthedocs.io/en/stable/tutorials/line/):
-#def log_probability(theta, x, y, yerr):
-#    lp = log_prior(theta)
-#    if not np.isfinite(lp):
-#        return -np.inf
-#    return lp + log_likelihood(theta, x, y, yerr)
-
 
 import math
 import numpy as np
 from insertpsf import *
 import scipy.stats
+import sys
 
-
-def log_likelihood(parameters, image, psf):
+def log_likelihood(parameters, image, psfs, focuses):
     xsize = image.shape[0]
     ysize = image.shape[1]
-    
-    x1, y1, h1, x2, y2, h2 = parameters
 
     xcens = np.array([x1,x2])
     ycens = np.array([y1,y2])
     heights = np.array([h1,h2])
+
+
+    if parameters.size == 4:
+        x1, y1, h1, focus = parameters
+        xcens = np.array([x1,])
+        ycens = np.array([y1,])
+        heights = np.array([h1,])
+    elif parameters.size == 7:
+        x1, y1, h1, x2, y2, h2, focus = parameters
+        xcens = np.array([x1,x2])
+        ycens = np.array([y1,y2])
+        heights = np.array([h1,h2])
+    elif parameters.size == 10:
+        x1, y1, h1, x2, y2, h2, x3, y3, h3, focus = parameters
+        xcens = np.array([x1,x2,x3])
+        ycens = np.array([y1,y2,y3])
+        heights = np.array([h1,h2,h3])
+    else:
+        print("Wrong number of input parameters. Acceptable numbers are 4, 7, or 10. You have" + str(parameters.size) + ". Aborting run")
+        sys.exit()
+
 
     #These are the parameters we need to be able to calulate the likelihood
     #I looked at Ians code and could not figure out how each of these are embedded in his dataframe
@@ -68,9 +52,17 @@ def log_likelihood(parameters, image, psf):
     if h1 < 0 or h2 < 0:
         return -np.inf
 
-    psfimage = insertpsf_n(image = np.zeros((xsize,ysize)), psf = psf,
+    # Get the median pixel value in the image to make a "blank" image with the right associated noise
+    noise = np.median(image)
+
+    # Choose appropriate PSF based on the focus value
+    rfocus = round(focus,1)
+    psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
+    psf = psfs[:,:,psfindex]
+
+    psfimage = insertpsf_n(image = np.random.poisson(lam = noise, size = (xsize,ysize)), psf = psf,
 				xcens = xcens, ycens = ycens, heights = heights)
- 
+
     residuals=image-psfimage
     loglike=0
     mu=200

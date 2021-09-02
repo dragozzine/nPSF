@@ -1,4 +1,3 @@
-# getpsf.py
 # part of nPSF
 # outline from Darin Ragozzine
 # April 2, 2020 
@@ -68,7 +67,7 @@ def getpsf_hst(filename):
 	psf = fitsfile[0].data
 
 	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
-	return psf/psf.sum()
+	return psf
 
 
 

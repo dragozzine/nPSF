@@ -34,7 +34,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import corner
-import json
+import commentjson
 #import tqdm
 from params import params_to_fitarray
 from params import fitarray_to_paramsdf
@@ -43,106 +43,19 @@ from likelihood import log_likelihood # Jarrod's code for EnsembleSampler
 from guess_test import make_test_df
 from getpsf import *
 from analysis import *
+import tinytim_psfs
 # from params.py import df_to_array, npsf_init_guess()
 np.random.seed(42)
 
 json_file = "run_props.json"
 # npsf_likelihood -- from Jarrod?
 
-def create_run_props():
-    """ Creates a dictionary, run_props, with the properties of the run. Probably won't
-    end up using it, instead use load_run_props() which load them from a JSON file
-    
-    Inputs: none
-    
-    Outputs: run_props (dictionary of properties of the run)
-    """
-    # Create dictionary
-    run_props = {"nwalkers":"32","nburnin":"0","nsteps":"5000","output_filename":"results.csv"}
-    
-    return run_props
-
-def save_run_props(run_props, json_file):
-    """ Saves an already defined run_props dictionary to a JSON file. May not end up being used
-    that much or just for changing the JSON file.
-    
-    Inputs: run_props (dictionary), json_file (filename of JSON file)
-    
-    Outputs: Saves a JSON file. Returns nothing.
-    """
-    # Convert to json and save
-    with open(json_file,'w') as file:
-        json.dump(run_props, file)
-    
-    return
-
-def load_run_props(json_file):
-    """ Imports run_props (dictionary) from a JSON  file
-    
-    Input: json_file -- name of JSON file used
-    
-    Output: run_props -- dictionary of properties of the run
-    """
-    try:
-        with open(json_file,'r') as file:
-            run_props = json.load(file)
-        return run_props
-    except:
-        json_file='./src/'+json_file
-        with open(json_file,'r') as file:
-            run_props = json.load(file)
-        return run_props
-
-def read_run_props(run_props):
-    """ Reads the dictionary run_props and saves each entry as a separate variable
-    
-    Input: run_props -- dictionary with properties of run
-    
-    Outputs:
-      - nwalkers -- number of walkers used for the run
-      - nburnin -- number of steps in burning, will be deleted (can be 0)
-      - nsteps -- number of steps used for run
-      - output_filename - name of the file that outputs the results (flatchain)
-    """
-    nwalkers = run_props['nwalkers']
-    nburnin = run_props['nburnin']
-    nsteps = run_props['nsteps']
-    output_filename = run_props['output_filename']
-
-    return nwalkers, nburnin, nsteps, output_filename
-
-def log_probability(x, mu, cov):
-    """ Test code for the log probaiblity before Jarrod's code (likelihood) is ready
-    This put gives the log probability of a Gaussian to be used in EnsembleSampler
-    
-    Input: x (p0), mu (mean), cov (Sigma)
-    
-    Output: log probability of Gaussian
-    
-    From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
-    """
-    diff = x - mu
-    return -0.5 * np.dot(diff, np.linalg.solve(cov, diff))
-
-def means_cov():
-    """ More test code. This is needed for log_probability (test version).
-    This code calculated the mean and cov of a Gaussian that will be created
-    in log_probability.
-    
-    Input: [none]
-    
-    Output: means, cov 
-
-    From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
-    """
-    means = np.random.rand(ndim)
-
-    cov = 0.5 - np.random.rand(ndim ** 2).reshape((ndim, ndim))
-    cov = np.triu(cov)
-    cov += cov.T - np.diag(cov.diagonal())
-    cov = np.dot(cov, cov)
-
-    return means, cov
+class ReadJson(object):
+    def __init__(self, filename):
+        print('Read the runprops.txt file')
+        self.data = json.load(open(filename))
+    def outProps(self):
+        return self.data
 
 def burnin(p0, nburnin):
     """ This code determines if running the burnin is necessary (based on
@@ -210,8 +123,12 @@ def make_walker_plots(chain):
         plt.close()
 
 ### Load run_props from JSON file ###
-run_props = load_run_props(json_file)
-nwalkers, nburnin, nsteps, output_filename = read_run_props(run_props)
+runprops = ReadJson("runprops.txt").outProps()
+
+nwalkers = runprops.get("nwalkers")
+nsteps = runprops.get("nsteps")
+nburnin = runprops.get("nburnin")
+output_filename = runprops.get("output_filename")
 
 # Get initial guess (with init_guess.py)
 # This uses test data from guess_test.py
@@ -224,20 +141,40 @@ print(p0.shape)
 # Get ndim
 ndim = np.shape(p0)[1]
 
-# Get initial guesses (for test case)
-#p0 = np.random.rand(nwalkers, ndim) # From: https://emcee.readthedocs.io/en/stable/tutorials/quickstart/
-
-# Get means and cov (for test code)
-means, cov = means_cov()
-
-# Loading in test image here
+# Loading in image to be solved
 image = np.loadtxt("../data/testimage_2objs.txt")
-psf = getpsf_2dgau()
+
+# Creating Tiny Tim PSFs
+fmin = runprops.get("fmin")
+fmax = runprops.get("fmax")
+fspace = runprops.get("fspace")
+focuses = np.arange(fmin, fmax + fspace, fspace)
+
+xpos = runprops.get("xpos")
+ypos = runprops.get("ypos")
+
+size_psf = runprops.get("psf_size")
+
+sample_factor = runprops.get("sample_factor")
+
+nchip = runprops.get("chip")
+ndet = runprops.get("det_int")
+
+filter = runprops.get("filter")
+
+numpsfs = focuses.size
+psfs = np.empty((x,y,numpsfs))
+
+for i,focus in enumerate(focuses):
+    filename = "model_psf_" + str(focus) + ".fits"
+    tinytim_psfs.make_subsampled_model_psf(filename, psf_position = (xpos, ypos), focus = focus, chip = nchip, detector = ndet,
+					   filter_name = filter, psf_size = size_psf, subsampling_factor = sample_factor)
+    psfs[:,:,i] = getpsf_hst(filename)
 
 # check for bad walkers / bad initial guesses
 reset = 0
 for i in range(nwalkers):
-    llhood = log_likelihood(p0[i,:], image, psf)
+    llhood = log_likelihood(p0[i,:], image, psfs, focuses)
     print(i, p0[i,:], llhood)
     while (llhood == -np.Inf):
         if(reset % 500 == 0) and (reset != 0):
@@ -253,12 +190,12 @@ for i in range(nwalkers):
         p0_dfreset = init_guess(params_df, 1)
         p0_reset, change_dict = params_to_fitarray(p0_dfreset)
         p0[i,:] = p0_reset
-        llhood = log_likelihood(p0[i,:]*(-1), image, psf)
+        llhood = log_likelihood(p0[i,:]*(-1), image, psfs, focuses)
         print(p0_reset, llhood, i, reset)
         reset += 1
 
 # Create sampler object
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_likelihood, args = [image, psf])
+sampler = emcee.EnsembleSampler(nwalkers, ndim, log_likelihood, args = [image, psfs, focuses])
 #moves = emcee.moves.StretchMove())
 
 # Burnin (optional, default 0 steps)
@@ -280,7 +217,7 @@ make_corner_plot(flatchain)
 
 make_walker_plots(chain)
 
-testconvergence_geweke(sampler)
+#testconvergence_geweke(sampler)
 
 # save chain
 # Convert chain to df (Ian)
