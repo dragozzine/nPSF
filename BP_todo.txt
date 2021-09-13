@@ -23,3 +23,6 @@ Optimization and automation... It's gonna be difficult if I have to manually run
 
 Begin testing recoverability of satellites/binaries for HFM observations
 
+Write a tool that can take a folder of HST images and automatically set them up to run
+	- most information should be in the headers
+	- maybe this can even include an automatic initial guess maker???

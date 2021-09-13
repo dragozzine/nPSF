@@ -12,7 +12,7 @@ import numpy as np
 import astropy.modeling.functional_models
 import astropy.io.fits
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 def getpsf_2dgau(size = (21,21), cov = np.array([[1,0],[0,1]]), supersample = 5):
@@ -59,12 +59,31 @@ def getpsf_hst(filename):
 	Outputs:
 		an array/image of an HST psf
 	"""
-
 	# Loading in the .fits object
 	fitsfile = astropy.io.fits.open(filename)
-	
+
 	# Getting data out of object
 	psf = fitsfile[0].data
+
+	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
+	return psf
+
+
+def getimage_hst(filename):
+	"""
+	Creates an array/image from a specifed fits file.
+
+	Inputs:
+		filename: a string specifying the location of the image
+
+	Outputs:
+		an array/image of anHST image
+	"""
+	# Loading in the .fits object
+	fitsfile = astropy.io.fits.open(filename)
+
+	# Getting data out of object
+	psf = fitsfile[1].data
 
 	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
 	return psf

@@ -1,25 +1,23 @@
 {
 	# Initialization properties
-	"input_image": "../data/testimage_2objs.txt",
+	"input_image": "../data/idsj03wgq_flc.fits",
+	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
-	"nwalkers": 40,
-	"nsteps": 200,
-	"nburnin": 10,
-
-	"starting_guess": "",
-
+	"nwalkers": 100,
+	"nsteps": 1000,
+	"nburnin": 1000,
 
 	# TinyTim input parameters
-	"det_int" = 15,
-	"chip" = 1,
-	"xpos" = 1024,
-	"ypos" = 1024,
-	"fmin" = -5,
-	"fmax" = 5,
-	"fspace" = 0.1,
-	"filter" = "F350LP",
-	"sample_factor" = 8,
-	"psf_size" = 2.0,
+	"det_int": 22,
+	"chip": 1,
+	"xpos": 267,
+	"ypos": 249,
+	"fmin": 3.4,
+	"fmax": 5.5,
+	"fspace": 0.1,
+	"filter": "F350LP",
+	"sample_factor": 8,
+	"psf_size": 2.0
 
 
 }

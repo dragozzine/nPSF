@@ -91,7 +91,7 @@ def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 
 
 def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"), 
-                xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1])):
+                xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1]), psfscale = 5):
 	"""
 	A function which provides a wrapper for looping over insertpsf_one.
 
@@ -118,7 +118,7 @@ def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_2
 	# Looping over parameters to insert psfs
 	for i in range(xcens.size):
 		image = insertpsf_one(image = image, psf = psf, xcen = xcens[i], 
-		                      ycen = ycens[i], psfheight = heights[i])
+		                      ycen = ycens[i], psfheight = heights[i], psfscale = psfscale)
 
 	# Returns image after convolving with the cd kernel
 	return cd_convolve(image)

@@ -10,14 +10,15 @@ import numpy as np
 from insertpsf import *
 import scipy.stats
 import sys
+from csv import writer
 
-def log_likelihood(parameters, image, psfs, focuses):
+def log_likelihood(parameters, image, psfs, focuses, runprops):
     xsize = image.shape[0]
     ysize = image.shape[1]
 
-    xcens = np.array([x1,x2])
-    ycens = np.array([y1,y2])
-    heights = np.array([h1,h2])
+    xcens = np.empty(2)
+    ycens = np.empty(2)
+    heights = np.empty(2)
 
 
     if parameters.size == 4:
@@ -46,10 +47,16 @@ def log_likelihood(parameters, image, psfs, focuses):
 
     # Priors for now... since priors never got completed
     if x1 < 0 or x1 > xsize or x2 < 0 or x2 > xsize:
+        print("x prior")
         return -np.inf
     if y1 < 0 or y1 > ysize or y2 < 0 or y2 > ysize:
+        print("y prior")
         return -np.inf
-    if h1 < 0 or h2 < 0:
+    if h1 < 0 or h2 < 0 or h1 < h2:
+        print("h prior", h1, h2)
+        return -np.inf
+    if focus < runprops.get("fmin") or focus > runprops.get("fmax"):
+        print("f prior", focus)
         return -np.inf
 
     # Get the median pixel value in the image to make a "blank" image with the right associated noise
@@ -60,12 +67,30 @@ def log_likelihood(parameters, image, psfs, focuses):
     psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
     psf = psfs[:,:,psfindex]
 
-    psfimage = insertpsf_n(image = np.random.poisson(lam = noise, size = (xsize,ysize)), psf = psf,
-				xcens = xcens, ycens = ycens, heights = heights)
+    rng = np.random.default_rng(42)
 
-    residuals=image-psfimage
+    psfimage = insertpsf_n(image = rng.poisson(lam = noise, size = (xsize,ysize)), psf = psf,
+				xcens = xcens, ycens = ycens, heights = heights, psfscale = runprops.get("sample_factor"))
+
+#    plt.figure()
+#    plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
+#    plt.show()
+#    plt.close()
+#    plt.figure()
+#    plt.imshow(image, cmap = "hot", interpolation = "nearest")
+#    plt.show()
+#    plt.close()
+#    residuals=image-psfimage
+#    plt.figure()
+#    plt.imshow(residuals, cmap = "hot", interpolation = "nearest")
+#    plt.show()
+#    plt.close()
+#    plt.figure()
+#    plt.imshow(psf, cmap = "hot", interpolation = "nearest")
+#    plt.show()
+#    plt.close()
     loglike=0
-    mu=200
+#    mu=200
     #We will need to change this to something that represents the noise profile better?
 #    for i in range(xsize):
 #        for j in range(ysize):
@@ -79,8 +104,25 @@ def log_likelihood(parameters, image, psfs, focuses):
 # Above was in nPSF before Winter 2021 Physics 529
 # But this seemed totally wrong and mu=200 was arbitrary
 # DR added this on 1/25/2021:
-    loglike = scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image)).sum()
+    likearray = scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image))
+    loglike = np.nansum(likearray)
+    #np.savetxt("loglike.csv", likearray, delimiter = ",")
+    #np.savetxt("image.csv", image, delimiter = ",")
+    #sys.exit()
 
+    #numnans = np.isnan(scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image))).sum()
+    #print(np.where)
+
+#    if runprops.get("best_likelihood") < loglike:
+#        runprops["best_likelihood"] = loglike
+#        with open("../results/best_likelihoods.csv", "a+", newline = "") as write_obj:
+#            csv_writer = writer(write_obj, delimiter = ',')
+#            out_list = []
+#            out_list.insert(0, parameters)
+#            out_list.insert(0, loglike)
+#            csv_writer.writerow(out_list)
+
+#    print(parameters, loglike)
     return loglike
 
 def log_probability(image,parameters):
