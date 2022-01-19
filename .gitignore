@@ -2,3 +2,6 @@
 __pycache__
 *.pyc
 *.png
+*.fits
+results/
+BP_todo.txt

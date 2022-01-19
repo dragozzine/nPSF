@@ -8,59 +8,113 @@
 
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import corner
 import emcee
-from statsmodels.regression.linear_model import yule_walker
+import astropy.io
+import astropy.wcs
 
+def plots(sampler, resultspath, runprops):
+	# Load in info about run and open the image's WCS
+	npsfs = runprops.get("npsfs")
+	f = astropy.io.fits.open(runprops.get('input_image'))
+	w = astropy.wcs.WCS(f[2].header)
 
-def plots(sampler, parameters):
-			# Here parameters is whatever file/object will have the run params
+	# Getting the stored chain
+	chain = sampler.get_chain()
 	flatchain = sampler.get_chain(flat = True)
-	chain = sampler.get_chain(flat = False)
-	# First start by converting the paramaters into an array of strings
-	# code here
-	names = list(paramaters)
-
-	fig = corner.corner(chain, bins = 40, labels = names, show_titles = True, 
-			    plot_datapoints = False, color = "blue", fill_contours = True,
-			    title_fmt = ".4f")
-	fig.tight_layout(pad = 1.08, h_pad = 0, w_pad = 0)
-	for ax in fig.get_axes():
-		ax.tick_params(axis = "both", labelsize = 20, pad = 0.5)
-	#fig.savefig(place to save the corner plot)
-
-	
-	# Now make the walker plots
-	numparams = chain.shape[2]
-	numwalkers = chain.shape[1]
-	numgens = chain.shape[0]
-	for i in range(numparams):
-		plt.figure()
-		for j in range(numwalkers):
-			plt.plot(np.reshape(chain[0:numgens,j,i], numgens))
-		plt.ylabel(names[i])
-		plt.xlabel("Generation")
-		plt.savefig
-		plt.close()
-
-	# Likelihood plots??
 	llhoods = sampler.get_log_prob(flat = True)
-	for i in range(numparams):
-		plt.figure(figsize = (9,9))
-		plt.subplot(221)
-		plt.hist(chain[i,:,:].flatten(), bins = 40, histtype = "step", color = "black")
-		plt.subplot(223)
-		plt.scatter(flatchain[i,:].flatten(), llhoods.flatten())
-		plt.xlabel(names[i])
-		plt.ylabel("Log(L)")
-		plt.subplot(224)
-		plt.hist(llhoods.flatten(), bins = 40, orientation = "horizontal", 
-			 histtype = "step", color = "black")
-		#plt.savefig(#place to save this)
-		plt.close("all")
-	#end
+
+	# Make derived parameters according to number of psfs
+	if npsfs == 1:
+		#pass	# No derived parameters??
+		names = np.array(["x1","y1","h1","f"])
+		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
+		make_walker_plots(chain, resultspath)
+		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
+
+	elif npsfs == 2:
+		# Calculating derived parameters
+		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
+		ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
+		dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
+		ddec = (dec2 - dec1)*3600
+		dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
+		sep = np.sqrt(dra**2 + ddec**2)
+		pa = np.arctan2(ddec,dra)*57.2958
+		dx = flatchain[:,3].flatten() - flatchain[:,0].flatten()
+		dy = flatchain[:,4].flatten() - flatchain[:,1].flatten()
+
+		# Loading derived parameters into arrays
+		names = np.array(["x1","y1","h1","x2","y2","h2","f"])
+		dnames = names.copy()
+		dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
+		dfchain = flatchain.copy()
+		dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)
+
+		# Making plots
+		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
+		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
+		make_walker_plots(chain, resultspath)
+		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
+
+	elif npsfs == 3:
+		# Calculating derived parameters
+		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
+		ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
+		ra3,dec3 = w.pixel_to_world_values(flatchain[:,6].flatten() + runprops.get("stamp_x"), flatchain[:,7].flatten() + runprops.get("stamp_y"))
+		dra2 = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
+		ddec2 = (dec2 - dec1)*3600
+		dra3 = (ra3 - ra1)*3600*np.cos(np.deg2rad(dec1))
+		ddec3 = (dec3 - dec1)*3600
+		dmag2 = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
+		dmag3 = -2.5*np.log10(flatchain[:,8].flatten()/flatchain[:,2].flatten())
+		sep2 = np.sqrt(dra2**2 + ddec2**2)
+		sep3 = np.sqrt(dra3**2 + ddec3**2)
+		pa2 = np.arctan2(ddec2,dra2)*57.2958
+		pa3 = np.arctan2(ddec3,dra3)*57.2958
+		dx2 = flatchain[:,3].flatten() - flatchain[:,0].flatten()
+		dy2 = flatchain[:,4].flatten() - flatchain[:,1].flatten()
+		dx3 = flatchain[:,6].flatten() - flatchain[:,0].flatten()
+		dy3 = flatchain[:,7].flatten() - flatchain[:,1].flatten()
+
+		# Loading derived parameters into arrays
+		names = np.array(["x1","y1","h1","x2","y2","h2","x3","y3","h3","f"])
+		dnames = names.copy()
+		dnames = np.append(dnames, ["dra2","ddec2","dmag2","sep2","pa2","dx2","dy2","dra3","ddec3","dmag3","sep3","pa3","dx3","dy3"])
+		dfchain = flatchain.copy()
+		dfchain = np.concatenate((dfchain,np.array(dra2).reshape((dra2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(ddec2).reshape((ddec2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dmag2).reshape((dmag2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(sep2).reshape((sep2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(pa2).reshape((pa2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dx2).reshape((dx2.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dy2).reshape((dy2.size,1)) ), axis = 1)
+
+		dfchain = np.concatenate((dfchain,np.array(dra3).reshape((dra3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(ddec3).reshape((ddec3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dmag3).reshape((dmag3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(sep3).reshape((sep3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(pa3).reshape((pa3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dx3).reshape((dx3.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dy3).reshape((dy3.size,1)) ), axis = 1)
+
+		# Making plots
+		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
+		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
+		make_walker_plots(chain, resultspath)
+		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
+	else:
+		print("Only 1-3 PSFs are currently supported. Aborting analysis.")
+
+	# Insert more analysis here?
 
 def auto_window(taus, c):
 	m = np.arange(len(taus)) < c * taus
@@ -173,7 +227,7 @@ def geweke(x, first=.1, last=.5, intervals=20, maxlag=20):
       interval and score the Geweke score on the interval.
     Notes
     -----
-    The Geweke score on some series x is computed by:
+    The Geweke score on some series x is computed by:make_likelihood_plots(dfchain, llhoods, dnames, resultspath)
       .. math:: \frac{E[x_s] - E[x_e]}{\sqrt{V[x_s] + V[x_e]}}
     where :math:`E` stands for the mean, :math:`V` the variance,
     :math:`x_s` a section at the start of the series and
@@ -235,3 +289,53 @@ def testconvergence_geweke(sampler):
 		plt.savefig("../results/" + names[i] + "_geweke.png")
 		plt.close()
 
+def make_corner_plot(flatchain, names, filename):
+	""" Makes a corner plot from the data from sampler. I may continue to
+	 make adjustments to this function.
+
+	Input: flatchain (2D version of data from sampler)
+
+	Output: Saves an image of the corner plot. Returns nothing.
+	"""
+	fig = corner.corner(flatchain, labels = names, plot_datapoints = False, color = "blue", 
+			    fill_contours = True, show_titles = True, bins = 40, title_fmt = ".6f")
+	fig.savefig(filename)
+
+def make_walker_plots(chain, path):
+	numparams = chain.shape[2]
+	numwalkers = chain.shape[1]
+	numgens = chain.shape[0]
+	names = np.array(["x1","y1","h1","x2","y2","h2","f"])
+	for i in range(numparams):
+		plt.figure()
+		for j in range(numwalkers):
+			plt.plot(np.reshape(chain[0:numgens,j,i], numgens))
+		plt.ylabel(names[i])
+		plt.xlabel("Generation")
+		plt.savefig(path + "/" + names[i] + "_walkers.png")
+		plt.close()
+
+def make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
+	nwalkers = runprops.get("nwalkers")
+	likelihoodspdf = PdfPages(resultspath + "/likelihoods.pdf")
+	ylimmin = np.percentile(llhoods.flatten(), 1)
+	ylimmax = llhoods.flatten().max() + 1
+	for i in range(dnames.size):
+		plt.figure(figsize = (9,9))
+		plt.subplot(221)
+		plt.hist(dfchain[:,i].flatten(), bins = 40, histtype = "step", color = "black")
+		plt.subplot(223)
+		plt.scatter(dfchain[:,i].flatten(), llhoods.flatten(),
+			    c = np.mod(np.linspace(0,llhoods.size - 1, llhoods.size), nwalkers),
+			    cmap = "nipy_spectral", edgecolors = "none", rasterized=True, alpha=0.1)
+		plt.xlabel(dnames[i])
+		plt.ylabel("Log(L)")
+		plt.ylim(ylimmin, ylimmax)
+		plt.subplot(224)
+		llflat = llhoods.flatten()
+		plt.hist(llflat[np.isfinite(llflat)], bins = 40, orientation = "horizontal",
+			 histtype = "step", color = "black")
+		plt.ylim(ylimmin, ylimmax)
+		likelihoodspdf.savefig()
+	likelihoodspdf.close()
+	plt.close("all")

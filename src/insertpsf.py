@@ -156,23 +156,31 @@ def cd_convolve(image):
 
 	Inputs:
 		image: ndarray, image to apply CD effects to.
-	
+
 	Outputs:
 		image with CD implemented
 	"""
 
 	# Defining the two charge diffusion kernels for ir and uv. For now I will use ir,
 	# but there could be a way of dealing with these to get a better value
-	cd_kernel_ir = np.array([ [0.002, 0.037, 0.002],
-				  [0.037, 0.844, 0.037],
-				  [0.002, 0.037, 0.002] ])
+	cd_kernel_800 = np.array([ [0.007, 0.071, 0.007],
+				  [0.071, 0.688, 0.071],
+				  [0.007, 0.071, 0.007] ])
 
-	cd_kernel_uv = np.array([ [0.027, 0.111, 0.027],
-				  [0.111, 0.432, 0.111],
-				  [0.027, 0.111, 0.027] ])
+	cd_kernel_600 = np.array([ [0.012, 0.084, 0.012],
+				  [0.084, 0.616, 0.084],
+				  [0.012, 0.084, 0.012] ])
+
+	cd_kernel_400 = np.array([ [0.017, 0.097, 0.017],
+				  [0.097, 0.544, 0.097],
+				  [0.017, 0.097, 0.017] ])
+
+	cd_kernel_250 = np.array([ [0.023, 0.105, 0.023],
+				  [0.105, 0.488, 0.105],
+				  [0.023, 0.105, 0.023] ])
 
 	# Convolving the image with the cd kernel
-	return scipy.ndimage.convolve( image, cd_kernel_ir, mode='constant', cval=0.0 )
+	return scipy.ndimage.convolve( image, cd_kernel_600, mode='constant', cval=0.0 )
 
 def make_image(paramsdf):
 	"""

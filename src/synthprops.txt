@@ -1,0 +1,21 @@
+{
+	# Initialization properties
+	"output_name": "basictest",
+
+	# Synthetic psf parameters
+	"skynoise": 100,
+	"psf_x": [250,255],
+	"psf_y": [250,245],
+	"psf_h": [10000,500],
+	"image_size": 512,
+	"focus": 4.0,
+
+	# TinyTim input parameters
+	"det_int": 22,
+	"chip": 1,
+	"xpos": 267,
+	"ypos": 249,
+	"filter": "F350LP",
+	"sample_factor": 8,
+	"psf_size": 2.0
+}

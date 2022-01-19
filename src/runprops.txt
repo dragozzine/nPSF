@@ -1,23 +1,31 @@
 {
 	# Initialization properties
-	"input_image": "../data/idsj03wgq_flc.fits",
+	"input_image": "../data/ied503iyq_flc.fits",
 	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
 	"nwalkers": 100,
-	"nsteps": 1000,
-	"nburnin": 1000,
+	"nsteps": 1,
+	"nburnin": 1,
+	"npsfs": 2,
+	"folder": false,
 
 	# TinyTim input parameters
 	"det_int": 22,
-	"chip": 1,
-	"xpos": 267,
-	"ypos": 249,
-	"fmin": 3.4,
-	"fmax": 5.5,
+	"chip": 2,
+	"xpos": 256,
+	"ypos": 256,
+	"fmin": -3.0,
+	"fmax": 1.0,
 	"fspace": 0.1,
-	"filter": "F350LP",
+	"filter": "F606W",
 	"sample_factor": 8,
-	"psf_size": 2.0
+	"psf_size": 2.0,
 
+	# nPSF settings
+	"processors": 1,
+	"stamp_size": 60,
+	"stamp_x": 220,
+	"stamp_y": 220,
+	"noise_cutoff": 0.2
 
 }
