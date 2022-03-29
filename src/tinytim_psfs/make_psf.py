@@ -209,69 +209,69 @@ def make_subsampled_model_psf(filename,
     strs_to_replace = []
     replacements = []
 
-    strs_to_replace.append("0.       # Z2 = X (V2) tilt")
-    replacements.append(str(optical_params_to_use["z2"]) + "       # Z2 = X (V2) tilt")
-
-    strs_to_replace.append("0.       # Z3 = Y (V3) tilt")
-    replacements.append(str(optical_params_to_use["z3"]) + "       # Z3 = Y (V3) tilt")
-
-    strs_to_replace.append("0.031    # Z5 = 0 degree astigmatism")
-    replacements.append(str(optical_params_to_use["astigmatism_0"]) + "    # Z5 = 0 degree astigmatism")
-
-    strs_to_replace.append("0.028    # Z6 = 45 degree astigmatism")
-    replacements.append(str(optical_params_to_use["astigmatism_45"]) + "    # Z6 = 45 degree astigmatism")
-
-    strs_to_replace.append("0.003    # Z7 = X (V2) coma")
-    replacements.append(str(optical_params_to_use["coma_x"]) + "    # Z7 = X (V2) coma")
-
-    strs_to_replace.append("0.001    # Z8 = Y (V3) coma")
-    replacements.append(str(optical_params_to_use["coma_y"]) + "    # Z8 = Y (V3) coma")
-
-    if chip == 1:
-        strs_to_replace.append("0.008    # Z9 = X clover")
-    else:
-        strs_to_replace.append("0.007    # Z9 = X clover")
-    replacements.append(str(optical_params_to_use["clover_x"]) + "    # Z9 = X clover")
-
-    strs_to_replace.append("0.018    # Z10 = Y clover")
-    replacements.append(str(optical_params_to_use["clover_y"]) + "    # Z10 = Y clover")
-
-    strs_to_replace.append("-0.025    # Z11 = 3rd order spherical")
-    replacements.append(str(optical_params_to_use["spherical_3rd"]) + "    # Z11 = 3rd order spherical")
-
-    strs_to_replace.append("0.       # Z12 = 0 degree Spherical astigmatism")
-    replacements.append(str(optical_params_to_use["z12"]) + "       # Z12 = 0 degree Spherical astigmatism")
-
-    strs_to_replace.append("0.       # Z13 = 45 degree Spherical astigmatism")
-    replacements.append(str(optical_params_to_use["z13"]) + "       # Z13 = 45 degree Spherical astigmatism")
-
-    strs_to_replace.append("0.       # Z14 = X Ashtray")
-    replacements.append(str(optical_params_to_use["z14"]) + "       # Z14 = X Ashtray")
-
-    strs_to_replace.append("0.       # Z15 = Y Ashtray")
-    replacements.append(str(optical_params_to_use["z15"]) + "       # Z15 = Y Ashtray")
-
-    strs_to_replace.append("0.       # Z16")
-    replacements.append(str(optical_params_to_use["z16"]) + "       # Z16")
-
-    strs_to_replace.append("0.       # Z17")
-    replacements.append(str(optical_params_to_use["z17"]) + "       # Z17")
-
-    strs_to_replace.append("0.       # Z18")
-    replacements.append(str(optical_params_to_use["z18"]) + "       # Z18")
-
-    strs_to_replace.append("0.       # Z19")
-    replacements.append(str(optical_params_to_use["z19"]) + "       # Z19")
-
-    strs_to_replace.append("0.       # Z20")
-    replacements.append(str(optical_params_to_use["z20"]) + "       # Z20")
-
-    strs_to_replace.append("0.       # Z21")
-    replacements.append(str(optical_params_to_use["z21"]) + "       # Z21")
-
-    strs_to_replace.append("0.009    # Z22 = 5th order spherical")
-    replacements.append(str(optical_params_to_use["spherical_5th"]) + "    # Z22 = 5th order spherical")
-
+#    strs_to_replace.append("0.       # Z2 = X (V2) tilt")
+#    replacements.append(str(optical_params_to_use["z2"]) + "       # Z2 = X (V2) tilt")
+#
+#    strs_to_replace.append("0.       # Z3 = Y (V3) tilt")
+#    replacements.append(str(optical_params_to_use["z3"]) + "       # Z3 = Y (V3) tilt")
+#
+#    strs_to_replace.append("0.031    # Z5 = 0 degree astigmatism")
+#    replacements.append(str(optical_params_to_use["astigmatism_0"]) + "    # Z5 = 0 degree astigmatism")
+#
+#    strs_to_replace.append("0.028    # Z6 = 45 degree astigmatism")
+#    replacements.append(str(optical_params_to_use["astigmatism_45"]) + "    # Z6 = 45 degree astigmatism")
+#
+#    strs_to_replace.append("0.003    # Z7 = X (V2) coma")
+#    replacements.append(str(optical_params_to_use["coma_x"]) + "    # Z7 = X (V2) coma")
+#
+#    strs_to_replace.append("0.001    # Z8 = Y (V3) coma")
+#    replacements.append(str(optical_params_to_use["coma_y"]) + "    # Z8 = Y (V3) coma")
+#
+#    if chip == 1:
+#        strs_to_replace.append("0.008    # Z9 = X clover")
+#    else:
+#        strs_to_replace.append("0.007    # Z9 = X clover")
+#    replacements.append(str(optical_params_to_use["clover_x"]) + "    # Z9 = X clover")
+#
+#    strs_to_replace.append("0.018    # Z10 = Y clover")
+#    replacements.append(str(optical_params_to_use["clover_y"]) + "    # Z10 = Y clover")
+#
+#    strs_to_replace.append("-0.025    # Z11 = 3rd order spherical")
+#    replacements.append(str(optical_params_to_use["spherical_3rd"]) + "    # Z11 = 3rd order spherical")
+#
+#    strs_to_replace.append("0.       # Z12 = 0 degree Spherical astigmatism")
+#    replacements.append(str(optical_params_to_use["z12"]) + "       # Z12 = 0 degree Spherical astigmatism")
+#
+#    strs_to_replace.append("0.       # Z13 = 45 degree Spherical astigmatism")
+#    replacements.append(str(optical_params_to_use["z13"]) + "       # Z13 = 45 degree Spherical astigmatism")
+#
+#    strs_to_replace.append("0.       # Z14 = X Ashtray")
+#    replacements.append(str(optical_params_to_use["z14"]) + "       # Z14 = X Ashtray")
+#
+#    strs_to_replace.append("0.       # Z15 = Y Ashtray")
+#    replacements.append(str(optical_params_to_use["z15"]) + "       # Z15 = Y Ashtray")
+#
+#    strs_to_replace.append("0.       # Z16")
+#    replacements.append(str(optical_params_to_use["z16"]) + "       # Z16")
+#
+#    strs_to_replace.append("0.       # Z17")
+#    replacements.append(str(optical_params_to_use["z17"]) + "       # Z17")
+#
+#    strs_to_replace.append("0.       # Z18")
+#    replacements.append(str(optical_params_to_use["z18"]) + "       # Z18")
+#
+#    strs_to_replace.append("0.       # Z19")
+#    replacements.append(str(optical_params_to_use["z19"]) + "       # Z19")
+#
+#    strs_to_replace.append("0.       # Z20")
+#    replacements.append(str(optical_params_to_use["z20"]) + "       # Z20")
+#
+#    strs_to_replace.append("0.       # Z21")
+#    replacements.append(str(optical_params_to_use["z21"]) + "       # Z21")
+#
+#    strs_to_replace.append("0.009    # Z22 = 5th order spherical")
+#    replacements.append(str(optical_params_to_use["spherical_5th"]) + "    # Z22 = 5th order spherical")
+#
     replace_multiple_in_file(tmp_par_file, par_file, strs_to_replace, replacements)
 
     # Set up the command to call tiny2

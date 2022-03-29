@@ -90,8 +90,10 @@ def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
 	plt.close()
 
 
-def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"), 
-                xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1]), psfscale = 5):
+#def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_248_267_50_F350LP_5_00.fits"), 
+#                xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1]), psfscale = 5, runprops = None):
+def insertpsf_n(image = np.zeros((100,100)), psf = np.ones((10,10)), 
+                xcens = np.array([49.5]), ycens = np.array([49.5]), heights = np.array([1]), psfscale = 5, runprops = None):
 	"""
 	A function which provides a wrapper for looping over insertpsf_one.
 
@@ -117,11 +119,14 @@ def insertpsf_n(image = np.zeros((100,100)), psf = getpsf_hst("../data/wfc3psf_2
 
 	# Looping over parameters to insert psfs
 	for i in range(xcens.size):
-		image = insertpsf_one(image = image, psf = psf, xcen = xcens[i], 
+		image = insertpsf_one(image = image, psf = psf, xcen = xcens[i],
 		                      ycen = ycens[i], psfheight = heights[i], psfscale = psfscale)
 
 	# Returns image after convolving with the cd kernel
-	return cd_convolve(image)
+	if runprops == None:
+		return image
+	else:
+		return cd_convolve(image, runprops)
 
 def test_insertpsf_n(image = np.random.random(size = (100,100))*10.0):
 	"""
@@ -150,7 +155,7 @@ def test_insertpsf_n(image = np.random.random(size = (100,100))*10.0):
 	plt.show()
 	plt.close()
 
-def cd_convolve(image):
+def cd_convolve(image, runprops):
 	"""
 	A function to model WC3 charge diffusion effects.
 
@@ -163,24 +168,27 @@ def cd_convolve(image):
 
 	# Defining the two charge diffusion kernels for ir and uv. For now I will use ir,
 	# but there could be a way of dealing with these to get a better value
-	cd_kernel_800 = np.array([ [0.007, 0.071, 0.007],
-				  [0.071, 0.688, 0.071],
-				  [0.007, 0.071, 0.007] ])
+	#cd_kernel_800 = np.array([ [0.007, 0.071, 0.007],
+	#			  [0.071, 0.688, 0.071],
+	#			  [0.007, 0.071, 0.007] ])
 
-	cd_kernel_600 = np.array([ [0.012, 0.084, 0.012],
-				  [0.084, 0.616, 0.084],
-				  [0.012, 0.084, 0.012] ])
+	#cd_kernel_600 = np.array([ [0.012, 0.084, 0.012],
+	#			  [0.084, 0.616, 0.084],
+	#			  [0.012, 0.084, 0.012] ])
 
-	cd_kernel_400 = np.array([ [0.017, 0.097, 0.017],
-				  [0.097, 0.544, 0.097],
-				  [0.017, 0.097, 0.017] ])
+	#cd_kernel_400 = np.array([ [0.017, 0.097, 0.017],
+	#			  [0.097, 0.544, 0.097],
+	#			  [0.017, 0.097, 0.017] ])
 
-	cd_kernel_250 = np.array([ [0.023, 0.105, 0.023],
-				  [0.105, 0.488, 0.105],
-				  [0.023, 0.105, 0.023] ])
+	#cd_kernel_250 = np.array([ [0.023, 0.105, 0.023],
+	#			  [0.105, 0.488, 0.105],
+	#			  [0.023, 0.105, 0.023] ])
+
+	# Now take the cd kernel from runprops
+	cd_kernel = runprops.get("cd_kernel")
 
 	# Convolving the image with the cd kernel
-	return scipy.ndimage.convolve( image, cd_kernel_600, mode='constant', cval=0.0 )
+	return scipy.ndimage.convolve( image, cd_kernel, mode='constant', cval=0.0 )
 
 def make_image(paramsdf):
 	"""

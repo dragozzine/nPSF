@@ -14,6 +14,7 @@ import corner
 import emcee
 import astropy.io
 import astropy.wcs
+from likelihood import log_likelihood
 
 def plots(sampler, resultspath, runprops):
 	# Load in info about run and open the image's WCS
@@ -65,6 +66,15 @@ def plots(sampler, resultspath, runprops):
 		make_walker_plots(chain, resultspath)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
 
+		# Make brightness separation plot
+		plt.figure()
+		plt.scatter(sep, dmag, c = llhoods, cmap = "viridis", s = 5, alpha = 0.1)
+		plt.xlabel("Separation (arcsec)")
+		plt.ylabel("delta mag")
+		plt.gca().invert_yaxis()
+		plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
+		plt.close()
+
 	elif npsfs == 3:
 		# Calculating derived parameters
 		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
@@ -114,7 +124,68 @@ def plots(sampler, resultspath, runprops):
 	else:
 		print("Only 1-3 PSFs are currently supported. Aborting analysis.")
 
-	# Insert more analysis here?
+	# Insert more analysis here
+
+def likelihood_map(flatchain, llhoods, resultspath, runprops):
+	# Set up for making likelihood maps
+	# Begin by getting best fit position. Assume this is the median location of parameters
+        # Load in info about run and open the image's WCS
+	npsfs = runprops.get("npsfs")
+	f = astropy.io.fits.open(runprops.get('input_image'))
+	w = astropy.wcs.WCS(f[2].header)
+
+	# Calculating derived parameters
+	ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
+	ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
+	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
+	ddec = (dec2 - dec1)*3600
+	dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
+	sep = np.sqrt(dra**2 + ddec**2)
+	pa = np.arctan2(ddec,dra)*57.2958
+	dx = flatchain[:,3].flatten() - flatchain[:,0].flatten()
+	dy = flatchain[:,4].flatten() - flatchain[:,1].flatten()
+
+	# Loading derived parameters into arrays
+	names = np.array(["x1","y1","h1","x2","y2","h2","f"])
+	dnames = names.copy()
+	dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
+	dfchain = flatchain.copy()
+	dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)
+
+	# Filtering the samples
+	bool_arr = llhoods > llhoods.max() - 10.0
+
+	# Make brightness separation plot
+	plt.figure()
+	plt.scatter(sep[bool_arr], dmag[bool_arr], c = llhoods[bool_arr], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("Separation (arcsec)")
+	plt.ylabel("delta mag")
+	plt.gca().invert_yaxis()
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
+	plt.close()
+
+
+
+
+def plot_best_fit(sampler, image, psfs, focuses, runprops):
+	# Get the best parameter set from the chain
+	llhoods = sampler.get_log_prob(flat = True)
+	flatchain = sampler.get_chain(flat = True)
+	ind = np.argmax(llhoods)
+	params = flatchain[ind,:].flatten()
+
+	# Run likelihhod function with plotit set to true
+	log_likelihood(params, image, psfs, focuses, runprops, plotit = True)
+	return params
+
 
 def auto_window(taus, c):
 	m = np.arange(len(taus)) < c * taus
@@ -330,6 +401,7 @@ def make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
 			    cmap = "nipy_spectral", edgecolors = "none", rasterized=True, alpha=0.1)
 		plt.xlabel(dnames[i])
 		plt.ylabel("Log(L)")
+		#plt.xlim(-0.25, 0.25)
 		plt.ylim(ylimmin, ylimmax)
 		plt.subplot(224)
 		llflat = llhoods.flatten()

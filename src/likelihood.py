@@ -12,7 +12,7 @@ import scipy.stats
 import sys
 from csv import writer
 
-def log_likelihood(parameters, image, psfs, focuses, runprops):
+def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
     xsize = image.shape[0]
     ysize = image.shape[1]
 
@@ -46,9 +46,11 @@ def log_likelihood(parameters, image, psfs, focuses, runprops):
         if h1 < 0 or h2 < 0 or h1 < h2:
             #print("h")
             return -np.inf
-        #print(h2*runprops.get("noise_cutoff"),( runprops.get("med_noise") + runprops.get("std_noise") ))
-        if h2*runprops.get("noise_cutoff") < ( runprops.get("med_noise") + runprops.get("std_noise") ):
-            print("noise cutoff")
+	# Noise cutoff. Central pixel of PSF has 10% of total flux. Reject values of h2 where the central pixel
+        # of the second PSF would be below the one sigma upper bound on the image's noise. If h2 can be below this
+        # it begins fitting to the image's noise, which really borks the run.
+        if 0.1*h2 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
+            #print("noise cutoff")
             return -np.inf
     elif parameters.size == 10:
         x1, y1, h1, x2, y2, h2, x3, y3, h3, focus = parameters
@@ -61,16 +63,16 @@ def log_likelihood(parameters, image, psfs, focuses, runprops):
             return -np.inf
         if h1 < 0 or h2 < 0 or h1 < h2 or h3 < 0 or h1 < h3:
             return -np.inf
-        if h2*runprops.get("noise_cutoff") < ( runprops.get("med_noise") + runprops.get("std_noise") ):
+        if 0.1*h2 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
             return -np.inf
-        if h3*runprops.get("noise_cutoff") < ( runprops.get("med_noise") + runprops.get("std_noise") ):
+        if 0.1*h3 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
             return -np.inf
     else:
         print("Wrong number of input parameters. Acceptable numbers are 4, 7, or 10. You have" + str(parameters.size) + ". Aborting run")
         sys.exit()
 
     if focus < runprops.get("fmin") or focus > runprops.get("fmax"):
-        print("f prior", focus)
+        #print("f prior", focus)
         return -np.inf
 
     # Get the median pixel value in the image to make a "blank" image with the right associated noise
@@ -80,57 +82,42 @@ def log_likelihood(parameters, image, psfs, focuses, runprops):
     rfocus = round(focus,1)
     psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
     psf = psfs[:,:,psfindex]
+    #print(rfocus, psfindex)
+    #print(focuses)
 
     #rng = np.random.default_rng(42)
 
     psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
-				xcens = xcens, ycens = ycens, heights = heights, psfscale = runprops.get("sample_factor"))
+				xcens = xcens, ycens = ycens, heights = heights,
+				psfscale = runprops.get("sample_factor"), runprops = runprops)
 
-#    plt.figure()
-#    plt.imshow(psfimage, cmap = "hot", interpolation = "nearest")
-#    plt.show()
-#    plt.close()
-#    plt.figure()
-#    plt.imshow(image, cmap = "hot", interpolation = "nearest")
-#    plt.show()
-#    plt.close()
-#    residuals=image-psfimage
-#    plt.figure()
-#    plt.imshow(residuals, cmap = "hot", interpolation = "nearest")
-#    plt.show()
-#    plt.close()
-#    plt.figure()
-#    plt.imshow(psf, cmap = "hot", interpolation = "nearest")
-#    plt.show()
-#    plt.close()
     loglike=0
-#    mu=200
-    #We will need to change this to something that represents the noise profile better?
-#    for i in range(xsize):
-#        for j in range(ysize):
-#            add = scipy.stats.poisson.logpmf(int(residuals[i,j]), mu)
-#            loglike += add
-            #print(i,j,add)
-            #print(residuals[i,j])
-
-#    loglike = scipy.stats.poisson.logpmf(np.rint(residuals),mu).sum()
-# TODO: FIX LIKELIHOOD
-# Above was in nPSF before Winter 2021 Physics 529
-# But this seemed totally wrong and mu=200 was arbitrary
-# DR added this on 1/25/2021:
     likearray = scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image))
     loglike = np.nansum(likearray)
-#    print(np.nanmin(likearray),loglike)
-#    plt.figure()
-#    plt.imshow(likearray, cmap = "hot", interpolation = "nearest")
-#    plt.show()
-#    plt.close()
-    #np.savetxt("loglike.csv", likearray, delimiter = ",")
-    #np.savetxt("image.csv", image, delimiter = ",")
-    #sys.exit()
 
-    #numnans = np.isnan(scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image))).sum()
-    #print(np.where)
+    # Make plots if plotit flag is true
+    if plotit:
+        # Model image
+        plt.figure()
+        plt.imshow(psfimage, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(runprops.get("resultspath") + "/bestfit.png", dpi = 300)
+        # Residual image
+        residuals=image-psfimage
+        plt.figure()
+        plt.imshow(residuals, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.scatter(ycens, xcens, color = "blue", marker = "o")
+        plt.xlim(ycens[0]-10, ycens[0]+10)
+        plt.ylim(xcens[0]-10, xcens[0]+10)
+        plt.savefig(runprops.get("resultspath") + "/residuals.png", dpi = 300)
+        # Likelihood image
+        plt.figure()
+        plt.imshow(likearray, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(runprops.get("resultspath") + "/llhood.png", dpi = 300)
+        plt.close("all")
+        return
 
 #    if runprops.get("best_likelihood") < loglike:
 #        runprops["best_likelihood"] = loglike
@@ -144,8 +131,37 @@ def log_likelihood(parameters, image, psfs, focuses, runprops):
 #    print(parameters, loglike)
     return loglike
 
+def log_likelihood_map(psf1params, psf2loc, psf2heights, image, psf, runprops):
+    xsize = image.shape[0]
+    ysize = image.shape[1]
+    image_int = np.rint(image)
+
+    # Get the median pixel value in the image to make a "blank" image with the right associated noise
+    skycounts = runprops.get("med_noise")
+
+    # Make initial image with a single psf within it
+    psf1image = insertpsf_one(image = np.ones((xsize,ysize))*skycounts, psf = psf, xcen = psf1params[0],
+			      ycen = psf1params[1], psfheight = psf1params[2], psfscale = runprops.get("sample_factor"))
+    psf2image_norm = insertpsf_one(image = np.zeros((xsize,ysize)), psf = psf, xcen = psf2loc[0],
+                              ycen = psf2loc[1], psfheight = 1.0, psfscale = runprops.get("sample_factor"))
+
+    # Prep arrrays for storage of likelihood values
+    llhoods = np.empty(psf2heights.size)
+
+    # Now loop over the heights of the 2nd psf
+    # add psf images together (with correct heights) and compare to input image
+    for i in range(psf2heights.size):
+        modelimage_nocd = psf1image + psf2image_norm*psf2heights[i]
+        modelimage = cd_convolve(modelimage_nocd, runprops)
+
+        likearray = scipy.stats.poisson.logpmf(np.rint(modelimage), image_int)
+        llhoods[i] = np.nansum(likearray)
+
+    return llhoods
+
+
 def log_probability(image,parameters):
-    lp = log_prior(parameters)#I did not see anything in this code yet
+    lp = log_prior(parameters) #I did not see anything in this code yet
     if not np.isfinite(lp):
         return -np.inf
     return lp + log_likelihood(image,parameters)

@@ -1,11 +1,12 @@
 {
 	# Initialization properties
-	"input_image": "../data/ied503iyq_flc.fits",
+	"input_image": "../data/ied519lhq_flc.fits",
 	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
 	"nwalkers": 100,
-	"nsteps": 1,
-	"nburnin": 1,
+	"nsteps": 2500,
+	"nburnin": 2500,
+	"clustering_burnin": 500,
 	"npsfs": 2,
 	"folder": false,
 
@@ -14,8 +15,8 @@
 	"chip": 2,
 	"xpos": 256,
 	"ypos": 256,
-	"fmin": -3.0,
-	"fmax": 1.0,
+	"fmin": -8.0,
+	"fmax": 8.0,
 	"fspace": 0.1,
 	"filter": "F606W",
 	"sample_factor": 8,
@@ -26,6 +27,9 @@
 	"stamp_size": 60,
 	"stamp_x": 220,
 	"stamp_y": 220,
-	"noise_cutoff": 0.2
+	"noise_cutoff": 1.0,
+	"cr_objlim": 5.0,
+	"use_clustering": true,
+	"max_prune": 0.8
 
 }
