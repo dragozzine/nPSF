@@ -3,18 +3,18 @@
 	"output_name": "basictest",
 
 	# Synthetic psf parameters
-	"skynoise": 100,
+	"skynoise": 20,
 	"psf_x": [250,255],
 	"psf_y": [250,245],
 	"psf_h": [10000,500],
-	"image_size": 512,
+	"image_size": 100,
 	"focus": 4.0,
 
 	# TinyTim input parameters
 	"det_int": 22,
-	"chip": 1,
-	"xpos": 267,
-	"ypos": 249,
+	"chip": 2,
+	"xpos": 256,
+	"ypos": 256,
 	"filter": "F350LP",
 	"sample_factor": 8,
 	"psf_size": 2.0

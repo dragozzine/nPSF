@@ -17,7 +17,7 @@ import matplotlib.colors as colors
 # in the function call, but if they are "None" you could use these values
 
 def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5, ycen = 49.5,
-                  psfscale = 5, psfheight = 1):
+                  psfscale = 5, psfheight = 1, runprops = None):
 
 	"""
 	Takes a psf created by getpsf.py and inserts it into an input image at the location
@@ -62,8 +62,17 @@ def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5
 	# Now downsizing the supersampled array
 	psfimage = skimage.measure.block_reduce(fullpsf, (psfscale,psfscale))
 
+	# Applying charge diffusion kernel to image, combining images, and returning
+	# Convolution is a linear operator, so applying to individual psfs is okay
+	# Noise properties of the image should not have a convolution applied to them?
+	# Convolving the noise with the cd kernel make the image look really weird.
+	if runprops == None:
+		return (image + psfimage)
+	else:
+		return (image + cd_convolve(psfimage, runprops))
+
 	# Returns passed in image + psf image
-	return (image + psfimage)
+	#return (image + psfimage)
 
 
 def test_insertpsf_one(image = np.random.random(size = (100,100))*0.01):
@@ -120,13 +129,10 @@ def insertpsf_n(image = np.zeros((100,100)), psf = np.ones((10,10)),
 	# Looping over parameters to insert psfs
 	for i in range(xcens.size):
 		image = insertpsf_one(image = image, psf = psf, xcen = xcens[i],
-		                      ycen = ycens[i], psfheight = heights[i], psfscale = psfscale)
+		                      ycen = ycens[i], psfheight = heights[i], psfscale = psfscale, runprops = runprops)
 
-	# Returns image after convolving with the cd kernel
-	if runprops == None:
-		return image
-	else:
-		return cd_convolve(image, runprops)
+	# Returns image	(used to convolve here but it change the noise properties of the image... moved upwards)
+	return image
 
 def test_insertpsf_n(image = np.random.random(size = (100,100))*10.0):
 	"""
@@ -185,6 +191,7 @@ def cd_convolve(image, runprops):
 	#			  [0.023, 0.105, 0.023] ])
 
 	# Now take the cd kernel from runprops
+	print("CD convolve")
 	cd_kernel = runprops.get("cd_kernel")
 
 	# Convolving the image with the cd kernel
