@@ -34,17 +34,17 @@ class ReadJson(object):
 # These are the grid locations which we want to test nPSF. Subject to change.
 # If you don't want to loop over a certain parameter, only leave one value in the
 # following arrays.
-seps = [1,2,4,8,16]
-xys = ["x","y","xy"]
-hrats = [1,5,10,100]
-#focuses = [-4,-2,0,2,4]
-focuses = [1]
+seps = [4]
+xys = ["y"]
+hrats = [5]
+focuses = [-4,-2,0,2,4]
+#focuses = [1]
 
 h1 = 10000	# the height of the first psf... could make this a multiple of the sky counts???
 
-testbatch = "bright_sep_test"
-if not os.path.exists(testbatch):
-	os.makedirs(testbatch)
+testbatch = "focus_rec_test"
+if not os.path.exists("../data/" + testbatch):
+	os.makedirs("../data/" + testbatch)
 
 # Load in synthprops.txt which is used to make synthetic images.
 runprops = ReadJson("synthprops.txt").outProps()
@@ -94,6 +94,9 @@ skynoise = runprops.get("skynoise")
 # Make random noise background image
 background = np.random.poisson(lam = skynoise, size = (image_size,image_size))
 
+# Output list of names of tests
+allfiles = []
+
 # Begin looping over appropriate arrays
 for i,sep in enumerate(seps):
 	for j,xy in enumerate(xys):
@@ -125,18 +128,35 @@ for i,sep in enumerate(seps):
 				synthimage = insertpsf_n(image = background, psf = ttpsf, xcens = np.array(psf_x), ycens = np.array(psf_y), heights = np.array(psf_h), psfscale = runprops.get("sample_factor"), runprops = runprops)
 
 				# Save said image
-				outputname = "../data/" + testbatch + "/sep" + str(sep) + "_" + xy + "_hrat" + str(hrat) + "_focus" + str(round(focus,1)) + ".fits"
-				if os.path.exists(outputname):
-					os.remove(outputname)
+				outputname = "../data/" + testbatch + "/sep" + str(sep) + "_" + xy + "_hrat" + str(hrat) + "_focus" + str(round(focus,1))
+				if os.path.exists(outputname + ".fits"):
+					os.remove(outputname + ".fits")
 				hdu = fits.PrimaryHDU(synthimage)
-				hdu.writeto(outputname)
+				hdu.writeto(outputname + ".fits")
+
+				# Output filename to list
+				allfiles.append(outputname)
+
+				# Make starting guess df
+				df = pd.DataFrame(data = np.zeros((2,7)), columns = ["xpos_1","ypos_1","height_1","xpos_2","ypos_2","height_2","focus"])
+				df.loc[0,["xpos_1","xpos_2"]] = psf_x
+				df.loc[0,["ypos_1","ypos_2"]] = psf_y
+				df.loc[0,["height_1","height_2"]] = psf_h
+				df.loc[0,"focus"] = focus
+				df.loc[1] = [1.0, 1.0, 0.1*h1, 1.0, 1.0, 0.1*h1/hrat, 1.0]
+				df.to_csv(outputname + ".csv")
+
 				#print(outputname)
 				#print(psf_x)
 				#print(psf_y)
 				#print(psf_h)
 
+# Copies file with all other settings
 shutil.copy("synthprops.txt", "../data/" + testbatch + "/othersettings.txt")
 
+# Outputs list to csv file
+with open("../data/" + testbatch + "/files.txt", "a+") as f:
+	np.savetxt(f, np.array(allfiles), fmt = "%s")
 
 
 

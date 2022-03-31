@@ -191,7 +191,7 @@ def cd_convolve(image, runprops):
 	#			  [0.023, 0.105, 0.023] ])
 
 	# Now take the cd kernel from runprops
-	print("CD convolve")
+	#print("CD convolve")
 	cd_kernel = runprops.get("cd_kernel")
 
 	# Convolving the image with the cd kernel

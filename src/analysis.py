@@ -19,8 +19,8 @@ from likelihood import log_likelihood
 def plots(sampler, resultspath, runprops):
 	# Load in info about run and open the image's WCS
 	npsfs = runprops.get("npsfs")
-	f = astropy.io.fits.open(runprops.get('input_image'))
-	w = astropy.wcs.WCS(f[2].header)
+	#f = astropy.io.fits.open(runprops.get('input_image'))
+	#w = astropy.wcs.WCS(f[2].header)
 
 	# Getting the stored chain
 	chain = sampler.get_chain()
@@ -37,26 +37,28 @@ def plots(sampler, resultspath, runprops):
 
 	elif npsfs == 2:
 		# Calculating derived parameters
-		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
-		ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
-		dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
-		ddec = (dec2 - dec1)*3600
+		#ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
+		#ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
+		#dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
+		#ddec = (dec2 - dec1)*3600
 		dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
-		sep = np.sqrt(dra**2 + ddec**2)
-		pa = np.arctan2(ddec,dra)*57.2958
+		#sep = np.sqrt(dra**2 + ddec**2)
+		#pa = np.arctan2(ddec,dra)*57.2958
 		dx = flatchain[:,3].flatten() - flatchain[:,0].flatten()
 		dy = flatchain[:,4].flatten() - flatchain[:,1].flatten()
+		sep = np.sqrt(dx**2 + dy**2)
 
 		# Loading derived parameters into arrays
 		names = np.array(["x1","y1","h1","x2","y2","h2","f"])
 		dnames = names.copy()
-		dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
+		#dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
+		dnames = np.append(dnames, ["dmag","sep","dx","dy"])
 		dfchain = flatchain.copy()
-		dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
+		#dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
+		#dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
 		dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
 		dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
+		#dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
 		dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
 		dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)
 
