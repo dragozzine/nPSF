@@ -1,6 +1,6 @@
 {
 	# Initialization properties
-	"input_image": "../data/ied519lhq_flc.fits",
+	"input_image": "../data/idsj03wgq_flc.fits",
 	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
 	"nwalkers": 100,

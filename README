@@ -1,30 +1,29 @@
-README for nPSF
+\README for nPSF
 Physics 529 Class Project Winter 2020
-Darin Ragozzine
-Students: Ian Clark, Jarrod Hansen, Jake Jensen, Maya Laker, Benjamin Proudfoot, Rochelle Steele, maybe others
+Darin Ragozzine and Benjamin Proudfoot
+Students: Ian Clark, Jarrod Hansen, Jake Jensen, Maya Laker, Rochelle Steele, maybe others
 
 nPSF is designed to be a code that returns a likelihood map for the 
 relative positions of multiple (n) PSFs in an image. It's goal is to 
 provide likelihood information for relative astrometry, e.g., KBO moons.
 
-nPSF will be written in python using scripts and ipython Jupyter notebooks.
+nPSF relies on installation of TinyTim to model HST PSFs. To install enter the tinytim-7.5 
+directory. Then use the following command (if on linux):
 
+make linux
 
+Then in your .bashrc, paste the following commands:
 
+TINYTIM=/usr/local/tinytim
+export TINYTIM
+alias tiny1=’$TINYTIM/tiny1’
+alias tiny2=’$TINYTIM/tiny2’
+alias tiny3=’$TINYTIM/tiny3’
 
-OLD JULIA README
+Lastly, in src/tinytim_psfs/make_psf.py, change the entry on line 44 to match the location
+of your TinyTim install. Once all this has been changed, nPSF should work fully. 
 
-Darin Ragozzine
-August 2, 2019
-
-nPSF is designed to be a code that returns a likelihood map for the 
-relative positions of multiple (n) PSFs in an image. It's goal is to 
-provide likelihood information for relative astrometry, e.g., KBO moons.
 
 nPSF is partialy funded by HST-14560.002 on finding the orbit of the moon of 2013 FY27.
 
-Currently in the planning phases, nPSF will be written in julia v1 to 
-take advantage of speed and to get me practice working with it. I have 
-lots of ideas for bells and whistles, but we'll see how far everything 
-gets.
 

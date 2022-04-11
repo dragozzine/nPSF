@@ -141,8 +141,9 @@ if np.nanmin(image) < 0:
 
 # Calculating image noise characteristics for priors
 runprops["med_noise"] = np.median(image)
-runprops["std_noise"] = np.std(image)
-print((runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff"))/0.1)
+runprops["std_noise"] = np.sqrt(runprops["med_noise"])
+print(runprops["std_noise"])
+print((runprops.get("std_noise")*runprops.get("noise_cutoff"))/0.1)
 
 # Getting inputs for Tiny Tim PSFs
 fmin = runprops.get("fmin")

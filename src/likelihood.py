@@ -49,7 +49,7 @@ def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
 	# Noise cutoff. Central pixel of PSF has 10% of total flux. Reject values of h2 where the central pixel
         # of the second PSF would be below the one sigma upper bound on the image's noise. If h2 can be below this
         # it begins fitting to the image's noise, which really borks the run.
-        if 0.1*h2 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
+        if 0.1*h2 < ( runprops.get("std_noise")*runprops.get("noise_cutoff") ):
             #print("noise cutoff")
             return -np.inf
     elif parameters.size == 10:
@@ -63,9 +63,9 @@ def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
             return -np.inf
         if h1 < 0 or h2 < 0 or h1 < h2 or h3 < 0 or h1 < h3:
             return -np.inf
-        if 0.1*h2 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
+        if 0.1*h2 < ( runprops.get("std_noise")*runprops.get("noise_cutoff") ):
             return -np.inf
-        if 0.1*h3 < ( runprops.get("med_noise") + runprops.get("std_noise")*runprops.get("noise_cutoff") ):
+        if 0.1*h3 < ( runprops.get("std_noise")*runprops.get("noise_cutoff") ):
             return -np.inf
     else:
         print("Wrong number of input parameters. Acceptable numbers are 4, 7, or 10. You have" + str(parameters.size) + ". Aborting run")
