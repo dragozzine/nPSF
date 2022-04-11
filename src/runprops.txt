@@ -23,7 +23,7 @@
 	"psf_size": 2.0,
 
 	# nPSF settings
-	"processors": 10,
+	"processors": 1,
 	"stamp_size": 60,
 	"stamp_x": 220,
 	"stamp_y": 220,

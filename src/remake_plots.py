@@ -31,7 +31,7 @@ else:
 resultspath = os.getcwd()
 backend = emcee.backends.HDFBackend(resultspath + '/chain.h5')
 
-os.chdir("../../../src")
+os.chdir("../../src")
 
 # Rerun plots
 from analysis import *
