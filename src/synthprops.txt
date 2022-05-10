@@ -3,12 +3,12 @@
 	"output_name": "basictest",
 
 	# Synthetic psf parameters
-	"skynoise": 20,
-	"psf_x": [250,255],
-	"psf_y": [250,245],
-	"psf_h": [10000,500],
-	"image_size": 100,
-	"focus": 4.0,
+	"skynoise": 150,
+	"psf_x": [48,38],
+	"psf_y": [49,53],
+	"psf_h": [750000,8550],
+	"image_size": 60,
+	"focus": 2.0,
 
 	# TinyTim input parameters
 	"det_int": 22,

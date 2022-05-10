@@ -65,10 +65,17 @@ psf_x = np.array(runprops.get("psf_x"))
 psf_y = np.array(runprops.get("psf_y"))
 psf_h = np.array(runprops.get("psf_h"))
 background = np.random.poisson(lam = skynoise, size = (image_size,image_size))
+background2 = np.random.poisson(lam = skynoise, size = (image_size,image_size))
 
 # Creating and saving synthetic image
 synthimage = insertpsf_n(image = background, psf = ttpsf, xcens = psf_x, ycens = psf_y, heights = psf_h, psfscale = runprops.get("sample_factor"))
+synthimage2 = insertpsf_n(image = background2, psf = ttpsf, xcens = psf_x, ycens = psf_y, heights = psf_h, psfscale = runprops.get("sample_factor"))
 if os.path.exists('../data/' + runprops.get("output_name") + ".fits"):
 	os.remove('../data/' + runprops.get("output_name") + ".fits")
 hdu = fits.PrimaryHDU(synthimage)
 hdu.writeto('../data/' + runprops.get("output_name") + ".fits")
+
+# Compare two of the same image together!
+import scipy.stats
+likearray = scipy.stats.poisson.logpmf(np.rint(synthimage),np.rint(synthimage2))
+print(np.nansum(likearray))

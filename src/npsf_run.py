@@ -78,6 +78,7 @@ if not os.path.exists(resultspath):
 runprops["resultspath"] = resultspath
 
 shutil.copy("runprops.txt", resultspath + "/runprops.txt")
+shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
 
 # Get initial guess (with init_guess.py)
 # This uses test data from guess_test.py
@@ -96,32 +97,13 @@ y = runprops.get("stamp_y")
 size = runprops.get("stamp_size")
 
 f = runprops.get('input_image')
-imageraw = getimage_hst(f)[x:x+size,y:y+size]
+imageraw = getimage_hst(f)
 
 # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
 # This may also be irrelevant if we move to simultaneous pair fitting
 import ccdproc
 cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-image = np.array(cr_cleaned)
-
-# Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
-reset = False
-while True:
-    crredo = False
-    for i in range(nwalkers):
-        #print(i,crmask[int(p0[i,0]),int(p0[i,1])])
-        if crmask[int(p0[i,0]),int(p0[i,1])]:
-            crredo = True
-    if crredo:
-        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
-        if reset:
-           print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
-           print("Consider increasing the objlim in runprops.")
-           sys.exit()
-        reset = True
-    else:
-        break
-image = np.array(cr_cleaned)
+image = np.array(cr_cleaned)[x:x+size,y:y+size]
 
 plt.figure()
 plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
@@ -129,11 +111,47 @@ plt.colorbar()
 plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
 plt.savefig(resultspath + "/cleanedimage.png")
 plt.figure()
-plt.imshow(crmask, cmap = "hot", interpolation = "nearest", origin = "lower")
+plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
 plt.colorbar()
 plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
 plt.savefig(resultspath + "/crmask.png")
 plt.close("all")
+
+
+# Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
+reset = False
+maskcheck = runprops.get("maskcheck")
+
+while maskcheck:
+    crredo = False
+    for i in range(nwalkers):
+        #print(i,crmask[int(p0[i,0]),int(p0[i,1])])
+        if crmask[x:x+size,y:y+size][int(p0[i,0]),int(p0[i,1])]:
+            crredo = True
+    if crredo:
+        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+
+        plt.figure()
+        plt.imshow(cr_cleaned[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+        plt.savefig(resultspath + "/cleanedimage.png")
+        plt.figure()
+        plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+        plt.savefig(resultspath + "/crmask.png")
+        plt.close("all")
+
+        if reset:
+           print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
+           print("Consider increasing the objlim in runprops.")
+           sys.exit()
+        reset = True
+    else:
+        break
+image = np.array(cr_cleaned)[x:x+size,y:y+size]
+
 
 # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
 if np.nanmin(image) < 0:

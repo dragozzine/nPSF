@@ -67,15 +67,16 @@ def plots(sampler, resultspath, runprops):
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
 		make_walker_plots(chain, resultspath)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
+		make_bright_sep(sep, dmag, resultspath)
 
 		# Make brightness separation plot
-		plt.figure()
-		plt.scatter(sep, dmag, c = llhoods, cmap = "viridis", s = 5, alpha = 0.1)
-		plt.xlabel("Separation (arcsec)")
-		plt.ylabel("delta mag")
-		plt.gca().invert_yaxis()
-		plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
-		plt.close()
+		#plt.figure()
+		#plt.scatter(sep, dmag, c = llhoods, cmap = "viridis", s = 5, alpha = 0.1)
+		#plt.xlabel("Separation (arcsec)")
+		#plt.ylabel("delta mag")
+		#plt.gca().invert_yaxis()
+		#plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
+		#plt.close()
 
 	elif npsfs == 3:
 		# Calculating derived parameters
@@ -413,3 +414,54 @@ def make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
 		likelihoodspdf.savefig()
 	likelihoodspdf.close()
 	plt.close("all")
+
+def make_bright_sep(sep, dmag, resultspath, weights = None):
+	if weights == None:
+		weights = np.ones(sep.size)
+
+	sep = np.array(sep)
+	dmag = np.array(dmag)
+
+	colorcycle = ['#377eb8', '#ff7f00', '#4daf4a', '#f781bf', '#a65628', '#984ea3','#999999', '#e41a1c', '#dede00']
+
+	num_bins = 20
+	log_bins = np.logspace(-2,0,num_bins,endpoint=True)
+	bin_indices_log = np.digitize(sep,log_bins)
+
+	sig1vals = []
+	sig2vals = []
+	sig3vals = []
+	dmag_bin = np.transpose([dmag,bin_indices_log])
+	weights_bin = np.transpose([weights,bin_indices_log])
+
+	from statsmodels.stats.weightstats import DescrStatsW
+
+	for i in range(1,num_bins+1):
+		bin1 = np.extract(dmag_bin[:,1]==i,dmag_bin[:,0])
+		weight1 = np.extract(weights_bin[:,1]==i,weights_bin[:,0])
+		if len(bin1)!=0:
+			sigs = DescrStatsW(data = bin1,weights=weight1).quantile(probs = [0.3173,0.0455,0.0027],return_pandas=False)
+			sig1vals.append(sigs[0])
+			sig2vals.append(sigs[1])
+			sig3vals.append(sigs[2])
+		else:
+			sig1vals.append(np.nan)
+			sig2vals.append(np.nan)
+			sig3vals.append(np.nan)
+
+	fig = plt.figure(figsize=(8,6))
+	ax1 = fig.add_subplot(111)
+	ax1.plot(log_bins,sig3vals,color = colorcycle[0], marker = '.', markersize = 10, label = r'3$\sigma$')
+	ax1.plot(log_bins,sig2vals,color = colorcycle[1], marker = '.', markersize = 10, label = r'2$\sigma$')
+	ax1.plot(log_bins,sig1vals,color = colorcycle[2], marker = '.', markersize = 10, label = r'1$\sigma$')
+	ax1.set_xlabel("Separation (arcsec)")
+	ax1.set_ylabel(r"$\Delta$ mag")
+	ax1.set_xscale("log")
+
+	#plt.xlabel("Separation (arcsec)")
+	#plt.ylabel("delta mag")
+	plt.gca().invert_yaxis()
+	#plt.xscale('log')
+	ax1.legend(loc='upper right')
+	plt.savefig(resultspath + "/bright_sep_lim.pdf")
+	plt.close()

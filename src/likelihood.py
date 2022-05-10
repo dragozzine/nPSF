@@ -128,7 +128,7 @@ def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
 #            out_list.insert(0, loglike)
 #            csv_writer.writerow(out_list)
 
-#    print(parameters, loglike)
+    #print(parameters, loglike)
     return loglike
 
 def log_likelihood_map(psf1params, psf2loc, psf2heights, image, psf, runprops):

@@ -47,24 +47,26 @@ class ReadJson(object):
 
 def make_map(psf1params, resultspath, runprops):
     # Loading in image to be solved and making a small postage stamp version
-    x = runprops.get("stamp_x")
-    y = runprops.get("stamp_y")
+    #x = runprops.get("stamp_x")
+    #y = runprops.get("stamp_y")
+    x = 0
+    y = 0
     size = runprops.get("stamp_size")
 
     f = runprops.get('input_image')
-    imageraw = getimage_hst(f)[x:x+size,y:y+size]
+    imageraw = getpsf_hst(f)
 
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
     import ccdproc
     cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-    image = np.array(cr_cleaned)
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
 
     # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
     reset = False
     while True:
         crredo = False
-        if crmask[int(psf1params[0]),int(psf1params[1])]:
+        if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
             crredo = True
         if crredo:
             cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
@@ -76,7 +78,7 @@ def make_map(psf1params, resultspath, runprops):
             reset = True
         else:
             break
-    image = np.array(cr_cleaned)
+    image = np.array(cr_cleaned)[x:x+size,y:y+size][x:x+size,y:y+size]
 
     # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
     if np.nanmin(image) < 0:
@@ -119,8 +121,8 @@ def make_map(psf1params, resultspath, runprops):
 
     # x and y grids have the 2nd psf placed at the center of the pixel. Not too accurate, but remember, we're looking
     # for relatively rough upper limits
-    xgrid = np.linspace(0.5, size - 0.5, num = int(nx))
-    ygrid = np.linspace(0.5, size - 0.5, num = int(ny))
+    xgrid = np.linspace(3.0, size - 3.0, num = int(nx))
+    ygrid = np.linspace(3.0, size - 3.0, num = int(ny))
     hgrid = np.logspace(np.log10(hmin), np.log10(psf1params[2]), num = int(nh))
 
     # Set up arrays holding the likelihood map. These are made to look exactly like the flatchain from emcee
@@ -131,7 +133,7 @@ def make_map(psf1params, resultspath, runprops):
     index = 0
 #    for i in tqdm(range(nx)):
 #        for j in tqdm(range(ny)):
-    for i in range(nx):
+    for i in tqdm(range(nx)):
         for j in range(ny):
             psf2loc = np.array([xgrid[i],ygrid[j]])
             h_llhoods = log_likelihood_map(psf1params[0:3], psf2loc, hgrid, image, psf, runprops)
@@ -145,7 +147,7 @@ def make_map(psf1params, resultspath, runprops):
                 grid[index,4] = ygrid[j]        # y2
                 grid[index,5] = hgrid[k]        # h2
                 grid[index,6] = psf1params[3]   # focus
-                print(round(100*index/(nx*ny*nh),4),h_llhoods[k])
+                #print(round(100*index/(nx*ny*nh),4),h_llhoods[k])
                 index += 1
     return grid, llhoods
 
@@ -177,7 +179,7 @@ for image in images:
 
     # Run nPSF for 1 psf
     #bestfit, resultspath = npsf_run(runprops)
-    bestfit = np.array([32.36,35.35,3263,0.35])
+    bestfit = np.array([50.0,50.0,10000,1])
     resultspath = "../results/testmap"
 
     # Make likelihood map
