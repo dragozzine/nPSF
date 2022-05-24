@@ -15,25 +15,30 @@ import emcee
 import astropy.io
 import astropy.wcs
 from likelihood import log_likelihood
+import pandas as pd
+import os.path
 
 def plots(sampler, resultspath, runprops):
 	# Load in info about run and open the image's WCS
-	npsfs = runprops.get("npsfs")
+	npsfs = runprops.get("npsfs")  
 	f = astropy.io.fits.open(runprops.get('input_image'))
 	w = astropy.wcs.WCS(f[2].header)
 
 	# Getting the stored chain
-	chain = sampler.get_chain()
-	flatchain = sampler.get_chain(flat = True)
-	llhoods = sampler.get_log_prob(flat = True)
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	chain = sampler.get_chain(discard=int(burnin+clusterburn), flat = False)
+	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
+	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
 
 	# Make derived parameters according to number of psfs
 	if npsfs == 1:
 		#pass	# No derived parameters??
 		names = np.array(["x1","y1","h1","f"])
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
-		make_walker_plots(chain, resultspath)
+		make_walker_plots(sampler, chain, resultspath, runprops)
 		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
+		make_sigsdf(flatchain, llhoods, names, resultspath)
 
 	elif npsfs == 2:
 		# Calculating derived parameters
@@ -65,9 +70,10 @@ def plots(sampler, resultspath, runprops):
 		# Making plots
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
-		make_walker_plots(chain, resultspath)
+		make_walker_plots(sampler, chain, resultspath, runprops)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
 		make_bright_sep(sep, dmag, resultspath)
+		make_sigsdf(dfchain, llhoods, dnames, resultspath)
 
 		# Make brightness separation plot
 		#plt.figure()
@@ -122,8 +128,9 @@ def plots(sampler, resultspath, runprops):
 		# Making plots
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
-		make_walker_plots(chain, resultspath)
+		make_walker_plots(sampler, chain, resultspath, runprops)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
+		make_sigsdf(dfchain, llhoods, dnames, resultspath)
 	else:
 		print("Only 1-3 PSFs are currently supported. Aborting analysis.")
 
@@ -180,8 +187,10 @@ def likelihood_map(flatchain, llhoods, resultspath, runprops):
 
 def plot_best_fit(sampler, image, psfs, focuses, runprops):
 	# Get the best parameter set from the chain
-	llhoods = sampler.get_log_prob(flat = True)
-	flatchain = sampler.get_chain(flat = True)
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
+	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
 	ind = np.argmax(llhoods)
 	params = flatchain[ind,:].flatten()
 
@@ -206,11 +215,14 @@ def autocorr_new(y, c = 5.0):
 	window = auto_window(taus, c)
 	return taus[window]
 
-def autocorrelation(sampler):
+def autocorrelation(sampler, runprops):
 	# Getting chain for the first parameter to calculate different values
-	chain = sampler.get_chain()
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	chain = sampler.get_chain(discard=int(burnin+clusterburn), flat = False)
 	
-	nwalkers = sampler.nwalkers
+	#nwalkers = sampler.nwalkers
+	nwalkers = runprops.get("nwalkers")
 	ndims = sampler.ndim
 	nsteps = chain.shape[0]
 	
@@ -264,11 +276,11 @@ def autocorrelation(sampler):
 	# Outputting the emcee calculated autocorrelation time as an additional check
 	print(
 		"Mean autocorrelation time: {0:.3f} steps".format(
-			np.mean(sampler.get_autocorr_time())
+			np.mean(sampler.get_autocorr_time(discard=int(burnin+clusterburn)))
 		)
 	)
 	print("Estimated autocorrelation time for each parameter:")
-	print(sampler.get_autocorr_time())
+	print(sampler.get_autocorr_time(discard=int(burnin+clusterburn)))
 
 def spec(x, order=2):
     beta, sigma = yule_walker(x, order)
@@ -344,14 +356,17 @@ def geweke(x, first=.1, last=.5, intervals=20, maxlag=20):
 
     return zscores
 
-def testconvergence_geweke(sampler):
-	nwalkers = sampler.nwalkers
-	flatchain = sampler.get_chain(flat = True)
+def testconvergence_geweke(sampler, runprops):
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	#nwalkers = sampler.nwalkers
+	nwalkers = runprops.get("nwalkers")
+	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
 	names = np.array(["x1","y1","h1","x2","y2","h2"])
 	for i in range(flatchain.shape[1]):
 		zscores = geweke(np.reshape(flatchain[:,i], flatchain.shape[0]), first = 0.1,
 				last = 0.5, intervals = 20)
-		means = np.mean(sampler.get_chain()[:,:,i].T, axis = 0)
+		means = np.mean(sampler.get_chain(discard=int(burnin+clusterburn))[:,:,i].T, axis = 0)
 		zscoresmean = geweke(means.flatten(), first = 0.1, last = 0.5, intervals = 20)
 		plt.figure()
 		plt.plot(np.array(zscores).T[0]/nwalkers, np.array(zscores).T[1], "o-")
@@ -375,7 +390,9 @@ def make_corner_plot(flatchain, names, filename):
 			    fill_contours = True, show_titles = True, bins = 40, title_fmt = ".6f")
 	fig.savefig(filename)
 
-def make_walker_plots(chain, path):
+def make_walker_plots(sampler, chain, path, runprops):
+	if not os.path.exists(path + "/walkers_pngs"):
+		os.makedirs(path + "/walkers_pngs")
 	numparams = chain.shape[2]
 	numwalkers = chain.shape[1]
 	numgens = chain.shape[0]
@@ -386,8 +403,61 @@ def make_walker_plots(chain, path):
 			plt.plot(np.reshape(chain[0:numgens,j,i], numgens))
 		plt.ylabel(names[i])
 		plt.xlabel("Generation")
-		plt.savefig(path + "/" + names[i] + "_walkers.png")
+		plt.savefig(path + "/walkers_pngs/" + names[i] + "_walkers.png")
 		plt.close()
+
+	# Now make the walker plot PDFs
+	from matplotlib.backends.backend_pdf import PdfPages
+
+	walkerpdf = PdfPages(path + "/walkers.pdf")
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	shortchain = sampler.get_chain(discard=int(burnin+clusterburn),flat = False)
+	print('Shortchain:', shortchain.shape)    
+	#shortchain = sampler.get_chain(flat = False)
+	numparams = shortchain.shape[2]
+	numwalkers = shortchain.shape[1]
+	numgens = shortchain.shape[0]
+	del shortchain
+	for i in range(numparams):
+		plt.figure(dpi = 50)
+		for j in range(numwalkers):
+			plt.plot(np.reshape(chain[0:numgens,j,i], numgens), alpha=0.2)
+		plt.ylabel(names[i])
+		plt.xlabel("Generation")
+		#plt.savefig(runprops.get('results_folder')+"/walker_"+names[i]+".png")
+		walkerpdf.attach_note(names[i])
+		walkerpdf.savefig()
+		#plt.close()
+
+	walkerpdf.close()
+	plt.close("all")
+    
+	fullwalkerpdf = PdfPages(path + "/walkers_full.pdf")
+	backend = emcee.backends.HDFBackend('chain.h5')    
+
+	full_chain = sampler.get_chain(discard=0, flat = False)  
+	fullgens = full_chain.shape[0]
+	#print(thin_plots, fullgens, full_chain.shape)
+	runnedthin = 1    
+	thin_plots = 1  
+	##if runprops.get('thin_run'):
+		##runnedthin = runprops.get('nthinning') 
+	for i in range(numparams):
+		plt.figure(dpi = 50)
+		for j in range(numwalkers):
+			plt.plot(np.reshape(full_chain[0:fullgens,j,i], fullgens), alpha=0.2)
+		plt.axvline(x=int(burnin/thin_plots/runnedthin))
+		plt.axvline(x=int(clusterburn/thin_plots/runnedthin+burnin/thin_plots/runnedthin))
+		plt.ylabel(names[i])
+		plt.xlabel("Generation")
+		#plt.savefig(runprops.get('results_folder')+"/walker_"+names[i]+".png")
+		fullwalkerpdf.attach_note(names[i])
+		fullwalkerpdf.savefig()
+		#plt.close()
+
+	fullwalkerpdf.close()
+	plt.close("all")        
 
 def make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
 	nwalkers = runprops.get("nwalkers")
@@ -465,3 +535,37 @@ def make_bright_sep(sep, dmag, resultspath, weights = None):
 	ax1.legend(loc='upper right')
 	plt.savefig(resultspath + "/bright_sep_lim.pdf")
 	plt.close()
+
+def make_sigsdf(dfchain, llhoods, dnames, resultspath):
+	# Figuring out the distributions of total_df_names
+	#llhoods = sampler.get_log_prob(flat = True) <- what is used in this code
+	#llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn),flat = True) <- used in multimoon code because it doesn't discard the burnin chain
+	ind = np.argmax(llhoods)
+	sigsdf = pd.DataFrame(columns = ['-3sigma','-2sigma','-1sigma','median','1sigma','2sigma','3sigma', 'mean', 'best fit'], index = dnames)
+	j = 0
+	for i in range(len(dfchain[0])):
+		num = dfchain[:,i]
+
+		median = np.percentile(num,50, axis = None)
+		neg3sig= np.percentile(num,0.37, axis = None)
+		neg2sig = np.percentile(num,2.275, axis = None)
+		neg1sig = np.percentile(num,15.866, axis = None)
+		pos1sig = np.percentile(num,84.134, axis = None)
+		pos2sig = np.percentile(num,97.724, axis = None)
+		pos3sig = np.percentile(num,99.63, axis = None)
+		mean = np.mean(num)
+		bestfit = dfchain[ind,:].flatten()[i]
+		sigsdf['-3sigma'].iloc[i] = neg3sig-median
+		sigsdf['-2sigma'].iloc[i] = neg2sig-median
+		sigsdf['-1sigma'].iloc[i] = neg1sig-median
+		sigsdf['median'].iloc[i] = median
+		sigsdf['1sigma'].iloc[i] = pos1sig-median
+		sigsdf['2sigma'].iloc[i] = pos2sig-median
+		sigsdf['3sigma'].iloc[i] = pos3sig-median
+		sigsdf['mean'].iloc[i] = mean
+		sigsdf['best fit'].iloc[i] = bestfit
+        
+	print(sigsdf)
+	filename = 'sigsdf.csv'    
+	sigsdf.to_csv(resultspath + "/" + filename)
+        

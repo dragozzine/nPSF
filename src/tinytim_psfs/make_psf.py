@@ -40,7 +40,7 @@ default_spec_type = (1, 11)  # Use spectrum for a K-type star by default
 default_filter_name = 'F606W'
 default_detector = 15  # ACS WFC
 default_psf_size = 2.0
-default_tinytim_path = "/home/byu.local/benp175/research/nPSF/tinytim-7.5"  # Adjust as needed for your own purposes
+default_tinytim_path = "/home/byu.local/wgiforos/research/nPSF/tinytim-7.5"  # Adjust as needed for your own purposes
 default_subsampling_factor = 8
 
 # Default optical parameters

@@ -230,7 +230,7 @@ state = sampler.run_mcmc(p0, nburnin, progress = True)
 # Clustering
 if runprops.get("use_clustering"):
     sampler, state = clustering(sampler, state, paramnames, log_likelihood, backend, image, psfs, focuses, runprops, max_prune_frac = runprops.get("max_prune"))
-sampler.reset()
+#sampler.reset()
 
 # Sample
 print("Beginning sample")
