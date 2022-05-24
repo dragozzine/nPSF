@@ -1,0 +1,36 @@
+{
+	# Initialization properties
+	"input_image": "../data/idsj03wgq_flc.fits",
+	"starting_guess": "startguess.csv",
+	"output_filename": "results.csv",
+	"nwalkers": 15,
+	"nsteps": 60,
+	"nburnin": 45,
+	"clustering_burnin": 30,
+	"npsfs": 2,
+	"folder": false,
+
+	# TinyTim input parameters
+	"det_int": 22,				# Specifies the camera being used
+	"chip": 2,					#two chips, our images are on U vis 2
+	"xpos": 267,				# x position and y position, give the center of the part of the camera we use, ('xpos','ypos') is the center. We use 512x512 dimensions
+	"ypos": 248,
+	"fmin": -5.0,				# Fmin and fmax are the maximum extents that it should check focus values (because the focus of HST changes over time due to expansion/contraction from heat).
+	"fmax": 5.0,
+	"fspace": 0.1,				# Leave alone, not worth experimenting with
+	"filter": "F350LP",			# Filter used to take image, find in the header of the image
+	"sample_factor": 8,			# you can ask to create the PSF in a higher resolution than the camera actually has (which makes it easier to do stuff with the PSF). Sample factor of 8 gives 64 sub-pixels within each pixel. Factor of 8 seems to work well.
+	"psf_size": 2.0,			# don’t change (tells tiny tim how big to make the psf)
+
+	# nPSF settings
+	"processors": 1,			# Don't change, does nothing
+	"stamp_size": 60,			# cut out a chunk that’s “stamp_size”x”stamp_size”
+	"stamp_x": 237,				# Stamp_x and stamp_y are where to start the stamp. Will want to change these depending on the characteristics of the object being analyzed. Will want padding around the object as well. Notice that these values are ('xpos' - half the 'stamp_size','ypos' - half the 'stamp_size').
+	"stamp_y": 218,
+	"noise_cutoff": 3.0,		# the central pixel in the PSF has to be 'x' sigma above the noise in the image, where x is the noise_cutoff.
+	"maskcheck": true,
+	"cr_objlim": 5.0,			# checks for cosmic ray pixels and fixes them (might accidentally think your target is a cosmic ray. If it does, you need to change the value to a larger value [will get an error telling you your object is a cosmic ray].)
+	"use_clustering": true,		# keep this as true
+	"max_prune": 0.8			# maximum that the clustering algorithm can remove. probably don't need to change this
+
+}
