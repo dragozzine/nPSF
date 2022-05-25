@@ -54,7 +54,8 @@ def make_map(psf1params, resultspath, runprops):
     size = runprops.get("stamp_size")
 
     f = runprops.get('input_image')
-    imageraw = getpsf_hst(f)
+    #imageraw = getpsf_hst(f)
+    imageraw = getimage_hst(f)
 
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
@@ -179,7 +180,8 @@ for image in images:
 
     # Run nPSF for 1 psf
     #bestfit, resultspath = npsf_run(runprops)
-    bestfit = np.array([50.0,50.0,10000,1])
+    #np.array([x1, y1, h1, focus]) from nPSF run results
+    bestfit = np.array([29.173379990355034,29.421632830659068,11393.147542136518,-3.4615050680606383])
     resultspath = "../results/testmap"
 
     # Make likelihood map
