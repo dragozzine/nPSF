@@ -21,8 +21,6 @@ from likelihood import log_likelihood
 import pandas as pd
 import os.path
 
-
-
 def plots(sampler, resultspath, runprops):
 	#, timeMJD, objectnames
 	# Load in info about run and open the image's WCS
@@ -45,13 +43,13 @@ def plots(sampler, resultspath, runprops):
 	if npsfs == 1:
 		#pass	# No derived parameters??
 		names = np.array(["x1","y1","h1","f"])
-		#make_obsdf(timeMJD, objectnames, resultspath)
+		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
+		make_walker_plots(sampler, chain, names, resultspath, runprops)
+		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
+		make_sigsdf(flatchain, llhoods, names, resultspath)
 
 	elif npsfs >= 2:
-
 		# Calculating derived parameters
-        
-		# Attempting to build code that takes npsfs and works without the hardcode of if, elif, etc.
 		ralist = []
 		for i in range(npsfs):
 			ralist = np.append(ralist,'ra' + str(i + 1))        
@@ -73,14 +71,13 @@ def plots(sampler, resultspath, runprops):
 		for i in range(npsfs-1):        
 			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
 			astromdf['ddec('+ str(npsfs - num) + '-1)'] = (astromdf[declist[i+1]] - astromdf[declist[0]])*3600
-			astromdf['dmag('+ str(npsfs - num) + '-1)'] = -2.5*np.log10(flatchain[:,num1].flatten()/flatchain[:,2].flatten())        
+			astromdf['dmag('+ str(npsfs - num) + '-1)'] = -2.5*np.log10(flatchain[:,num1].flatten()/flatchain[:,2].flatten())   
 			astromdf['sep('+ str(npsfs - num) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - num) + '-1)']**2 + astromdf['ddec('+ str(npsfs - num) + '-1)']**2)        
 			astromdf['pa('+ str(npsfs - num) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - num) + '-1)'],astromdf['dra('+ str(npsfs - num) + '-1)'])*57.2958        
 			astromdf['dx('+ str(npsfs - num) + '-1)'] = flatchain[:,(num1-2)].flatten() - flatchain[:,0].flatten()        
 			astromdf['dy('+ str(npsfs - num) + '-1)'] = flatchain[:,(num1-1)].flatten() - flatchain[:,1].flatten()        
 			num -= 1
 			num1 += 3
-
             
         #dra2
 		#astromdf['dra('+ str(npsfs - 1) + '-1)'] = (astromdf[ralist[1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
@@ -113,7 +110,6 @@ def plots(sampler, resultspath, runprops):
 		#print(astromdf.tail())        
 		#print(astromdf.size)             
 
-
 		# Loading derived parameters into arrays
 		names = []
 		for i in range(npsfs):
@@ -134,8 +130,7 @@ def plots(sampler, resultspath, runprops):
 			dnames = np.append(dnames,"dx"+ str(npsfs - num))
 			dnames = np.append(dnames,"dy"+ str(npsfs - num))
 			num -= 1
-
-        
+       
 		dfchain = flatchain.copy()  
 		num = npsfs - 2
 		for i in range(npsfs-1):        
