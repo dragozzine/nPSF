@@ -5,6 +5,9 @@
 #	Benjamin Proudfoot
 #	05/05/20
 #
+#	updated ability to iterate through n psfs
+#	William Giforos
+#	05/31/22
 
 import numpy as np
 import matplotlib
@@ -18,124 +21,143 @@ from likelihood import log_likelihood
 import pandas as pd
 import os.path
 
+
+
 def plots(sampler, resultspath, runprops):
+	#, timeMJD, objectnames
 	# Load in info about run and open the image's WCS
 	npsfs = runprops.get("npsfs")  
 	f = astropy.io.fits.open(runprops.get('input_image'))
 	w = astropy.wcs.WCS(f[2].header)
-
+    
 	# Getting the stored chain
 	burnin = int(runprops.get('nburnin'))
 	clusterburn = int(runprops.get('clustering_burnin'))  
 	chain = sampler.get_chain(discard=int(burnin+clusterburn), flat = False)
 	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
 	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
+    
+    # Get time from image header. We want the midtime of exposure, so ((EXPEND - EXPSTART) / 2)
+    # Where EXPEND and EXPSTART are in Modified Julian Date (MJD)
 
+    
 	# Make derived parameters according to number of psfs
 	if npsfs == 1:
 		#pass	# No derived parameters??
 		names = np.array(["x1","y1","h1","f"])
-		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
-		make_walker_plots(sampler, chain, resultspath, runprops)
-		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
-		make_sigsdf(flatchain, llhoods, names, resultspath)
+		#make_obsdf(timeMJD, objectnames, resultspath)
 
-	elif npsfs == 2:
+	elif npsfs >= 2:
+
 		# Calculating derived parameters
-		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
-		ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
-		dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
-		ddec = (dec2 - dec1)*3600
-		dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
-		sep = np.sqrt(dra**2 + ddec**2)
-		pa = np.arctan2(ddec,dra)*57.2958
-		dx = flatchain[:,3].flatten() - flatchain[:,0].flatten()
-		dy = flatchain[:,4].flatten() - flatchain[:,1].flatten()
-		#sep = np.sqrt(dx**2 + dy**2)
+        
+		# Attempting to build code that takes npsfs and works without the hardcode of if, elif, etc.
+		ralist = []
+		for i in range(npsfs):
+			ralist = np.append(ralist,'ra' + str(i + 1))        
+		declist = []
+		for i in range(npsfs):
+			declist = np.append(declist,'dec' + str(i + 1))
+            
+		astromlist = np.append(ralist,declist)       
+		ind = list(range(0,len(flatchain)))        
+		astromdf = pd.DataFrame(columns = astromlist, index = ind)
+
+		num = 0        
+		for i in range(npsfs):
+			astromdf[ralist[i]],astromdf[declist[i]] = w.pixel_to_world_values(flatchain[:,num].flatten() + runprops.get("stamp_x"), flatchain[:,(num+1)].flatten() + runprops.get("stamp_y"))
+			num += 3
+        
+		num = npsfs - 2
+		num1 = 5
+		for i in range(npsfs-1):        
+			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
+			astromdf['ddec('+ str(npsfs - num) + '-1)'] = (astromdf[declist[i+1]] - astromdf[declist[0]])*3600
+			astromdf['dmag('+ str(npsfs - num) + '-1)'] = -2.5*np.log10(flatchain[:,num1].flatten()/flatchain[:,2].flatten())        
+			astromdf['sep('+ str(npsfs - num) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - num) + '-1)']**2 + astromdf['ddec('+ str(npsfs - num) + '-1)']**2)        
+			astromdf['pa('+ str(npsfs - num) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - num) + '-1)'],astromdf['dra('+ str(npsfs - num) + '-1)'])*57.2958        
+			astromdf['dx('+ str(npsfs - num) + '-1)'] = flatchain[:,(num1-2)].flatten() - flatchain[:,0].flatten()        
+			astromdf['dy('+ str(npsfs - num) + '-1)'] = flatchain[:,(num1-1)].flatten() - flatchain[:,1].flatten()        
+			num -= 1
+			num1 += 3
+
+            
+        #dra2
+		#astromdf['dra('+ str(npsfs - 1) + '-1)'] = (astromdf[ralist[1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
+        #dra3
+		#astromdf['dra('+ str(npsfs - 0) + '-1)'] = (astromdf[ralist[2]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
+        #ddec2
+		#astromdf['ddec('+ str(npsfs - 1) + '-1)'] = (astromdf[declist[1]] - astromdf[declist[0]])*3600
+        #ddec3
+		#astromdf['ddec('+ str(npsfs - 0) + '-1)'] = (astromdf[declist[2]] - astromdf[declist[0]])*3600        
+        #dmag2
+		#astromdf['dmag('+ str(npsfs - 1) + '-1)'] = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())        
+        #dmag3
+		#astromdf['dmag('+ str(npsfs - 0) + '-1)'] = -2.5*np.log10(flatchain[:,8].flatten()/flatchain[:,2].flatten())
+        #sep2
+		#astromdf['sep('+ str(npsfs - 1) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - 1) + '-1)']**2 + astromdf['ddec('+ str(npsfs - 1) + '-1)']**2)        
+        #sep3
+		#astromdf['sep('+ str(npsfs - 0) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - 0) + '-1)']**2 + astromdf['ddec('+ str(npsfs - 0) + '-1)']**2)        
+        #pa2
+		#astromdf['pa('+ str(npsfs - 1) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - 1) + '-1)'],astromdf['dra('+ str(npsfs - 1) + '-1)'])*57.2958        
+        #pa3
+		#astromdf['pa('+ str(npsfs - 0) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - 0) + '-1)'],astromdf['dra('+ str(npsfs - 0) + '-1)'])*57.2958        
+        #dx2
+		#astromdf['dx('+ str(npsfs - 1) + '-1)'] = flatchain[:,3].flatten() - flatchain[:,0].flatten()        
+        #dx3
+		#astromdf['dx('+ str(npsfs - 0) + '-1)'] = flatchain[:,6].flatten() - flatchain[:,0].flatten()        
+        #dy2
+		#astromdf['dy('+ str(npsfs - 1) + '-1)'] = flatchain[:,4].flatten() - flatchain[:,1].flatten()        
+        #dy3
+		#astromdf['dy('+ str(npsfs - 0) + '-1)'] = flatchain[:,7].flatten() - flatchain[:,1].flatten()
+		#print(astromdf.tail())        
+		#print(astromdf.size)             
+
 
 		# Loading derived parameters into arrays
-		names = np.array(["x1","y1","h1","x2","y2","h2","f"])
-		dnames = names.copy()
-		dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
-		#dnames = np.append(dnames, ["dmag","sep","dx","dy"])
-		dfchain = flatchain.copy()
-		dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)
+		names = []
+		for i in range(npsfs):
+			names = np.append(names,"x" + str(i + 1))
+			names = np.append(names,"y" + str(i + 1))
+			names = np.append(names,"h" + str(i + 1))
+			if i == (npsfs - 1):
+				names = np.append(names,'f')
+
+		dnames = names.copy() 
+		num = 1
+		for i in range(npsfs-1):            
+			dnames = np.append(dnames,"dra"+ str(npsfs - num))
+			dnames = np.append(dnames,"ddec"+ str(npsfs - num))
+			dnames = np.append(dnames,"dmag"+ str(npsfs - num))
+			dnames = np.append(dnames,"sep"+ str(npsfs - num))
+			dnames = np.append(dnames,"pa"+ str(npsfs - num))
+			dnames = np.append(dnames,"dx"+ str(npsfs - num))
+			dnames = np.append(dnames,"dy"+ str(npsfs - num))
+			num -= 1
+
+        
+		dfchain = flatchain.copy()  
+		num = npsfs - 2
+		for i in range(npsfs-1):        
+			dfchain = np.concatenate((dfchain,np.array(astromdf['dra('+ str(npsfs - num) + '-1)']).reshape((astromdf['dra('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['ddec('+ str(npsfs - num) + '-1)']).reshape((astromdf['ddec('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['dmag('+ str(npsfs - num) + '-1)']).reshape((astromdf['dmag('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['sep('+ str(npsfs - num) + '-1)']).reshape((astromdf['sep('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['pa('+ str(npsfs - num) + '-1)']).reshape((astromdf['pa('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['dx('+ str(npsfs - num) + '-1)']).reshape((astromdf['dx('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)
+			dfchain = np.concatenate((dfchain,np.array(astromdf['dy('+ str(npsfs - num) + '-1)']).reshape((astromdf['dy('+ str(npsfs - num) + '-1)'].size,1)) ), axis = 1)            
+			num -= 1
 
 		# Making plots
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
-		make_walker_plots(sampler, chain, resultspath, runprops)
-		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
-		make_bright_sep(sep, dmag, resultspath)
-		make_sigsdf(dfchain, llhoods, dnames, resultspath)
-
-		# Make brightness separation plot
-		#plt.figure()
-		#plt.scatter(sep, dmag, c = llhoods, cmap = "viridis", s = 5, alpha = 0.1)
-		#plt.xlabel("Separation (arcsec)")
-		#plt.ylabel("delta mag")
-		#plt.gca().invert_yaxis()
-		#plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
-		#plt.close()
-
-	elif npsfs == 3:
-		# Calculating derived parameters
-		ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
-		ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
-		ra3,dec3 = w.pixel_to_world_values(flatchain[:,6].flatten() + runprops.get("stamp_x"), flatchain[:,7].flatten() + runprops.get("stamp_y"))
-		dra2 = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
-		ddec2 = (dec2 - dec1)*3600
-		dra3 = (ra3 - ra1)*3600*np.cos(np.deg2rad(dec1))
-		ddec3 = (dec3 - dec1)*3600
-		dmag2 = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
-		dmag3 = -2.5*np.log10(flatchain[:,8].flatten()/flatchain[:,2].flatten())
-		sep2 = np.sqrt(dra2**2 + ddec2**2)
-		sep3 = np.sqrt(dra3**2 + ddec3**2)
-		pa2 = np.arctan2(ddec2,dra2)*57.2958
-		pa3 = np.arctan2(ddec3,dra3)*57.2958
-		dx2 = flatchain[:,3].flatten() - flatchain[:,0].flatten()
-		dy2 = flatchain[:,4].flatten() - flatchain[:,1].flatten()
-		dx3 = flatchain[:,6].flatten() - flatchain[:,0].flatten()
-		dy3 = flatchain[:,7].flatten() - flatchain[:,1].flatten()
-
-		# Loading derived parameters into arrays
-		names = np.array(["x1","y1","h1","x2","y2","h2","x3","y3","h3","f"])
-		dnames = names.copy()
-		dnames = np.append(dnames, ["dra2","ddec2","dmag2","sep2","pa2","dx2","dy2","dra3","ddec3","dmag3","sep3","pa3","dx3","dy3"])
-		dfchain = flatchain.copy()
-		dfchain = np.concatenate((dfchain,np.array(dra2).reshape((dra2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(ddec2).reshape((ddec2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dmag2).reshape((dmag2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(sep2).reshape((sep2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(pa2).reshape((pa2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dx2).reshape((dx2.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dy2).reshape((dy2.size,1)) ), axis = 1)
-
-		dfchain = np.concatenate((dfchain,np.array(dra3).reshape((dra3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(ddec3).reshape((ddec3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dmag3).reshape((dmag3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(sep3).reshape((sep3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(pa3).reshape((pa3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dx3).reshape((dx3.size,1)) ), axis = 1)
-		dfchain = np.concatenate((dfchain,np.array(dy3).reshape((dy3.size,1)) ), axis = 1)
-
-		# Making plots
-		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
-		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
-		make_walker_plots(sampler, chain, resultspath, runprops)
+		make_walker_plots(sampler, chain, names, resultspath, runprops)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
 		make_sigsdf(dfchain, llhoods, dnames, resultspath)
 	else:
-		print("Only 1-3 PSFs are currently supported. Aborting analysis.")
-
-	# Insert more analysis here
-
+		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")
+        
+        
 def likelihood_map(flatchain, llhoods, resultspath, runprops):
 	# Set up for making likelihood maps
 	# Begin by getting best fit position. Assume this is the median location of parameters
@@ -390,13 +412,12 @@ def make_corner_plot(flatchain, names, filename):
 			    fill_contours = True, show_titles = True, bins = 40, title_fmt = ".6f")
 	fig.savefig(filename)
 
-def make_walker_plots(sampler, chain, path, runprops):
+def make_walker_plots(sampler, chain, names, path, runprops):
 	if not os.path.exists(path + "/walkers_pngs"):
 		os.makedirs(path + "/walkers_pngs")
 	numparams = chain.shape[2]
 	numwalkers = chain.shape[1]
 	numgens = chain.shape[0]
-	names = np.array(["x1","y1","h1","x2","y2","h2","f"])
 	for i in range(numparams):
 		plt.figure()
 		for j in range(numwalkers):

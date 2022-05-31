@@ -3,6 +3,10 @@
 	"input_image": "../data/idsj03wgq_flc.fits",
 	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
+	"names_dict": {
+		"name_1": "2013FY27",
+		"name_2": "Moon1"
+	},
 	"nwalkers": 15,
 	"nsteps": 45,
 	"nburnin": 30,

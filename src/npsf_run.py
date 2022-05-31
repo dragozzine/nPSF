@@ -90,6 +90,7 @@ p0, change_dict = params_to_fitarray(p0_df)
 
 # Get ndim
 ndim = np.shape(p0)[1]
+print("ndim:",ndim)
 
 # Loading in image to be solved and making a small postage stamp version
 x = runprops.get("stamp_x")
