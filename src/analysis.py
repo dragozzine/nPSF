@@ -20,11 +20,16 @@ import astropy.wcs
 from likelihood import log_likelihood
 import pandas as pd
 import os.path
+from latlon_transform import convert_to_primary_centric
 
 def plots(sampler, resultspath, runprops):
-	#, timeMJD, objectnames
 	# Load in info about run and open the image's WCS
 	npsfs = runprops.get("npsfs")  
+	name_dict = runprops.get("names_dict")
+	objectnames = []
+	for i in name_dict.values():
+		objectnames.append(i)
+	print(objectnames)
 	f = astropy.io.fits.open(runprops.get('input_image'))
 	w = astropy.wcs.WCS(f[2].header)
     
@@ -34,9 +39,6 @@ def plots(sampler, resultspath, runprops):
 	chain = sampler.get_chain(discard=int(burnin+clusterburn), flat = False)
 	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
 	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
-    
-    # Get time from image header. We want the midtime of exposure, so ((EXPEND - EXPSTART) / 2)
-    # Where EXPEND and EXPSTART are in Modified Julian Date (MJD)
 
     
 	# Make derived parameters according to number of psfs
@@ -46,7 +48,6 @@ def plots(sampler, resultspath, runprops):
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
 		make_walker_plots(sampler, chain, names, resultspath, runprops)
 		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
-		make_sigsdf(flatchain, llhoods, names, resultspath)
 
 	elif npsfs >= 2:
 		# Calculating derived parameters
@@ -78,37 +79,6 @@ def plots(sampler, resultspath, runprops):
 			astromdf['dy('+ str(npsfs - num) + '-1)'] = flatchain[:,(num1-1)].flatten() - flatchain[:,1].flatten()        
 			num -= 1
 			num1 += 3
-            
-        #dra2
-		#astromdf['dra('+ str(npsfs - 1) + '-1)'] = (astromdf[ralist[1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
-        #dra3
-		#astromdf['dra('+ str(npsfs - 0) + '-1)'] = (astromdf[ralist[2]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
-        #ddec2
-		#astromdf['ddec('+ str(npsfs - 1) + '-1)'] = (astromdf[declist[1]] - astromdf[declist[0]])*3600
-        #ddec3
-		#astromdf['ddec('+ str(npsfs - 0) + '-1)'] = (astromdf[declist[2]] - astromdf[declist[0]])*3600        
-        #dmag2
-		#astromdf['dmag('+ str(npsfs - 1) + '-1)'] = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())        
-        #dmag3
-		#astromdf['dmag('+ str(npsfs - 0) + '-1)'] = -2.5*np.log10(flatchain[:,8].flatten()/flatchain[:,2].flatten())
-        #sep2
-		#astromdf['sep('+ str(npsfs - 1) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - 1) + '-1)']**2 + astromdf['ddec('+ str(npsfs - 1) + '-1)']**2)        
-        #sep3
-		#astromdf['sep('+ str(npsfs - 0) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - 0) + '-1)']**2 + astromdf['ddec('+ str(npsfs - 0) + '-1)']**2)        
-        #pa2
-		#astromdf['pa('+ str(npsfs - 1) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - 1) + '-1)'],astromdf['dra('+ str(npsfs - 1) + '-1)'])*57.2958        
-        #pa3
-		#astromdf['pa('+ str(npsfs - 0) + '-1)'] = np.arctan2(astromdf['ddec('+ str(npsfs - 0) + '-1)'],astromdf['dra('+ str(npsfs - 0) + '-1)'])*57.2958        
-        #dx2
-		#astromdf['dx('+ str(npsfs - 1) + '-1)'] = flatchain[:,3].flatten() - flatchain[:,0].flatten()        
-        #dx3
-		#astromdf['dx('+ str(npsfs - 0) + '-1)'] = flatchain[:,6].flatten() - flatchain[:,0].flatten()        
-        #dy2
-		#astromdf['dy('+ str(npsfs - 1) + '-1)'] = flatchain[:,4].flatten() - flatchain[:,1].flatten()        
-        #dy3
-		#astromdf['dy('+ str(npsfs - 0) + '-1)'] = flatchain[:,7].flatten() - flatchain[:,1].flatten()
-		#print(astromdf.tail())        
-		#print(astromdf.size)             
 
 		# Loading derived parameters into arrays
 		names = []
@@ -148,7 +118,13 @@ def plots(sampler, resultspath, runprops):
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
 		make_walker_plots(sampler, chain, names, resultspath, runprops)
 		make_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops)
-		make_sigsdf(dfchain, llhoods, dnames, resultspath)
+		print("Making the obsdf file")
+		obsdf = make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath)
+		print("Converting RA/DEC to LAT/LONG")
+		forsigsdf = convert_to_primary_centric(obsdf, objectnames, npsfs, resultspath, 1000)
+		print("Making the sigsdf file")
+		make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath)
+
 	else:
 		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")
         
@@ -552,13 +528,90 @@ def make_bright_sep(sep, dmag, resultspath, weights = None):
 	plt.savefig(resultspath + "/bright_sep_lim.pdf")
 	plt.close()
 
-def make_sigsdf(dfchain, llhoods, dnames, resultspath):
-	# Figuring out the distributions of total_df_names
-	#llhoods = sampler.get_log_prob(flat = True) <- what is used in this code
-	#llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn),flat = True) <- used in multimoon code because it doesn't discard the burnin chain
+    
+def make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath):
+	# Get time from image header. We want the midtime of exposure, so ((EXPEND - EXPSTART) / 2)
+	# Where EXPEND and EXPSTART are in Modified Julian Date (MJD)
+	expend = f[0].header['expend']
+	expstart = f[0].header['expstart']
+	timeMJD = expstart + ((expend - expstart) / 2)
+	timeJD = timeMJD + 2400000.5
+	print("Observation time JD:", timeJD)
+	print("size of data frame:", astromdf.shape)
+        
+    #Make obsdf dataframe
+	#obsdf = astromdf[0:10].copy()
+	obsdf = astromdf.copy()
+    
+	obsdf.insert(0, 'time',pd.Series(["{:10.4f}".format(timeJD)], index=[0]))
+	obsdf['time'] = obsdf['time'].astype('float64')    
+	for i in range(npsfs):
+		obsdf.drop(columns=['ra' + str(i+1),'dec' + str(i+1)], inplace=True)
+            
+	num = npsfs - 2                  
+	for i in range(npsfs-1):
+		obsdf.drop(columns=['dmag('+ str(npsfs - num) + '-1)','sep('+ str(npsfs - num) + '-1)','pa('+ str(npsfs - num) + '-1)','dx('+ str(npsfs - num) + '-1)','dy('+ str(npsfs - num) + '-1)'], inplace=True)
+		obsdf.rename(columns={'dra('+ str(npsfs - num) + '-1)': 'Delta-RA_'+objectnames[i+1], 'ddec('+ str(npsfs - num) + '-1)': 'Delta-DEC_'+objectnames[i+1]}, inplace=True)
+		num -= 1
+
+    #Calculate errors for dra and ddec for each moon
+	num = 0                      
+	for k in range(npsfs-1):  
+		num_dra = dfchain[0:len(obsdf),(3*npsfs)+1+num]
+		num_ddec = dfchain[0:len(obsdf),(3*npsfs)+2+num]
+            
+		neg1sig_dra = np.percentile(num_dra,15.866, axis = None)
+		pos1sig_dra = np.percentile(num_dra,84.134, axis = None)
+		neg1sig_ddec = np.percentile(num_ddec,15.866, axis = None)
+		pos1sig_ddec = np.percentile(num_ddec,84.134, axis = None)
+		ralist = []     
+		declist = []     
+        
+		for i in range(len(obsdf)):
+         
+			error_neg_dra = neg1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]
+			error_pos_dra = pos1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]  
+			error_temp_dra = (np.abs(error_neg_dra) + np.abs(error_pos_dra))/2
+			error_neg_ddec = neg1sig_ddec - obsdf['Delta-DEC_'+objectnames[k+1]].iloc[i]
+			error_pos_ddec = pos1sig_ddec - obsdf['Delta-DEC_'+objectnames[k+1]].iloc[i]  
+			error_temp_ddec = (np.abs(error_neg_ddec) + np.abs(error_pos_ddec))/2
+      
+			ralist = np.append(ralist,error_temp_dra)        
+			declist = np.append(declist,error_temp_ddec)        
+
+		obsdf['Delta-RA_'+objectnames[k+1]+'-err'] = ralist
+		obsdf['Delta-DEC_'+objectnames[k+1]+'-err'] = declist           
+		num += 7
+        
+	return obsdf      
+        
+    
+def make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath):
+	num = 1
+	for i in range(npsfs-1):            
+		dnames = np.append(dnames,"lat"+ str(npsfs - num))
+		dnames = np.append(dnames,"long"+ str(npsfs - num))
+		dnames = np.append(dnames,"dlat"+ str(npsfs - num))
+		dnames = np.append(dnames,"dlong"+ str(npsfs - num))
+		num -= 1
+
+	#dfchain = dfchain[0:10,:]
+	num = 1
+	for i in range(npsfs-1):        
+		dfchain = np.concatenate((dfchain,np.array(forsigsdf['lat'+ str(npsfs - num)]).reshape((forsigsdf['lat'+ str(npsfs - num)].size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(forsigsdf['long'+ str(npsfs - num)]).reshape((forsigsdf['long'+ str(npsfs - num)].size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(forsigsdf['dlat'+ str(npsfs - num)]).reshape((forsigsdf['dlat'+ str(npsfs - num)].size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(forsigsdf['dlong'+ str(npsfs - num)]).reshape((forsigsdf['dlong'+ str(npsfs - num)].size,1)) ), axis = 1)
+		num -= 1        
+        
+        
 	ind = np.argmax(llhoods)
+	#print(dnames[(3*npsfs)+1])
+	#print(dnames[(3*npsfs)+2])
+    
 	sigsdf = pd.DataFrame(columns = ['-3sigma','-2sigma','-1sigma','median','1sigma','2sigma','3sigma', 'mean', 'best fit'], index = dnames)
 	j = 0
+   
 	for i in range(len(dfchain[0])):
 		num = dfchain[:,i]
 

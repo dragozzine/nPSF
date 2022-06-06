@@ -4,7 +4,7 @@
 	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
 	"names_dict": {
-		"name_1": "2013FY27",
+		"name_1": "2013 FY27",
 		"name_2": "Moon1"
 	},
 	"nwalkers": 15,
