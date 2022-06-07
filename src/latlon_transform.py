@@ -6,6 +6,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 import matplotlib.pyplot as plt
 import time
+from tqdm import tqdm
 from astropy.coordinates import GeocentricMeanEcliptic
 from astropy.coordinates import HeliocentricMeanEcliptic
 from astropy.coordinates import HeliocentricTrueEcliptic
@@ -89,7 +90,7 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         #print(RA_1, len(RA_1), RA_1_err, len(RA_1_err))
         print(len(RA_1),len(RA_1_err))
         
-        for k in range(len(RA_1)):
+        for k in tqdm(range(len(RA_1))):
             #plt.figure(k)
             for j in range(sample_num):
                 ra_err[k][j] = np.random.normal(RA_1[k]*3600, abs(RA_1_err[k]))/3600
