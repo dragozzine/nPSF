@@ -114,6 +114,11 @@ def plots(sampler, resultspath, runprops):
 			num -= 1
 
 		# Making plots
+		if npsfs == 2:
+			sep = astromdf['sep(2-1)']
+			dmag = astromdf['dmag(2-1)']
+			make_bright_sep(sep, dmag, resultspath)
+            
 		make_corner_plot(flatchain, names, resultspath + "/corner.pdf")
 		make_corner_plot(dfchain, dnames, resultspath + "/cornerderived.pdf")
 		make_walker_plots(sampler, chain, names, resultspath, runprops)
@@ -124,7 +129,7 @@ def plots(sampler, resultspath, runprops):
 		forsigsdf = convert_to_primary_centric(obsdf, objectnames, npsfs, resultspath, 1000)
 		print("Making the sigsdf file")
 		make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath)
-
+       
 	else:
 		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")
         
@@ -140,6 +145,7 @@ def likelihood_map(flatchain, llhoods, resultspath, runprops):
 	# Calculating derived parameters
 	ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
 	ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
+    
 	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
 	ddec = (dec2 - dec1)*3600
 	dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
