@@ -47,14 +47,11 @@ class ReadJson(object):
 
 def make_map(psf1params, resultspath, runprops):
     # Loading in image to be solved and making a small postage stamp version
-    #x = runprops.get("stamp_x")
-    #y = runprops.get("stamp_y")
-    x = 0
-    y = 0
+    x = runprops.get("stamp_x")
+    y = runprops.get("stamp_y")
     size = runprops.get("stamp_size")
 
     f = runprops.get('input_image')
-    #imageraw = getpsf_hst(f)
     imageraw = getimage_hst(f)
 
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
@@ -62,6 +59,16 @@ def make_map(psf1params, resultspath, runprops):
     import ccdproc
     cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
     image = np.array(cr_cleaned)[x:x+size,y:y+size]
+    
+    plt.figure()
+    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.savefig(resultspath + "/cleanedimage.png")
+    plt.figure()
+    plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.savefig(resultspath + "/crmask.png")
+    plt.close("all")
 
     # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
     reset = False
@@ -71,6 +78,16 @@ def make_map(psf1params, resultspath, runprops):
             crredo = True
         if crredo:
             cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+            plt.figure()
+            plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.savefig(resultspath + "/cleanedimage.png")
+            plt.figure()
+            plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.savefig(resultspath + "/crmask.png")
+            plt.close("all")
+            
             if reset:
                 print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
                 print("Consider increasing the objlim in runprops.")
@@ -79,8 +96,8 @@ def make_map(psf1params, resultspath, runprops):
             reset = True
         else:
             break
-    image = np.array(cr_cleaned)[x:x+size,y:y+size][x:x+size,y:y+size]
-
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
+    
     # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
     if np.nanmin(image) < 0:
         image = image - np.floor(np.nanmin(image)) + 1.0
@@ -180,13 +197,42 @@ for image in images:
 
     # Run nPSF for 1 psf
     #bestfit, resultspath = npsf_run(runprops)
-    #np.array([x1, y1, h1, focus]) from nPSF run results
-    bestfit = np.array([29.173379990355034,29.421632830659068,11393.147542136518,-3.4615050680606383])
-    resultspath = "../results/testmap"
+    #np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
+    bestfit = np.array([29.169275600687797,29.423152192793545,11413.98208305506,-3.5721513382928105])
+    resultspath = "../results/map_" + runprops["image_name"]
+    
+    # Create results folder
+    if os.path.exists(resultspath):
+        overwrite = "placeholder"
+        while overwrite != "yes":
+            overwrite = input("Results directory already exists. Would you like to continue to overwrite it? (yes or no)")
+            if overwrite == "yes":
+                #os.makedirs(resultspath)
+                print("Results folder overwritten")
+            elif overwrite == "no":
+                print("results not overwritten. Please choose new image to process.")
+                sys.exit()
+            else:
+                print("please enter yes or no")
+    else:
+        os.makedirs(resultspath) 
+    runprops["resultspath"] = resultspath
+    
+    #if not os.path.exists(resultspath):
+        #os.makedirs(resultspath)
+   # runprops["resultspath"] = resultspath
+
+    shutil.copy("runprops.txt", resultspath + "/runprops.txt")
+    shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
+    #shutil.copy(runprops.get("input_image")[8:], resultspath + "/" + runprops.get('input_image')[8:-5])
+
 
     # Make likelihood map
     grid, llhoods = make_map(bestfit, resultspath, runprops)
-
+    
+    np.save(resultspath + '/grid.npy',grid)
+    np.save(resultspath + '/llhoods.npy',llhoods)
+    
     # Make plots
     likelihood_map(grid, llhoods, resultspath, runprops)
 
