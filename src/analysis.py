@@ -21,6 +21,7 @@ from likelihood import log_likelihood
 import pandas as pd
 import os.path
 from latlon_transform import convert_to_primary_centric
+from tqdm import tqdm
 
 def plots(sampler, resultspath, runprops):
 	# Load in info about run and open the image's WCS
@@ -127,6 +128,7 @@ def plots(sampler, resultspath, runprops):
 		obsdf = make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath)
 		print("Converting RA/DEC to LAT/LONG")
 		forsigsdf = convert_to_primary_centric(obsdf, objectnames, npsfs, resultspath, 1000)
+		print(forsigsdf.head(10))        
 		print("Making the sigsdf file")
 		make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath)
        
@@ -573,7 +575,7 @@ def make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath):
 		ralist = []     
 		declist = []     
         
-		for i in range(len(obsdf)):
+		for i in tqdm(range(len(obsdf))):
          
 			error_neg_dra = neg1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]
 			error_pos_dra = pos1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]  

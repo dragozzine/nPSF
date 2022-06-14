@@ -17,6 +17,7 @@ from astropy import coordinates
 import astropy
 import sys
 import commentjson as json
+import gc
 
 
 '''
@@ -90,12 +91,16 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         #print(RA_1, len(RA_1), RA_1_err, len(RA_1_err))
         print(len(RA_1),len(RA_1_err))
         
-        for k in tqdm(range(len(RA_1))):
+        #for k in tqdm(range(len(RA_1))):
             #plt.figure(k)
-            for j in range(sample_num):
-                ra_err[k][j] = np.random.normal(RA_1[k]*3600, abs(RA_1_err[k]))/3600
-                dec_err[k][j] = np.random.normal(DEC_1[k]*3600, abs(DEC_1_err[k]))/3600
+            #for j in range(sample_num):
+                #ra_err[k][j] = np.random.normal(RA_1[k]*3600, abs(RA_1_err[k]))/3600
+                #dec_err[k][j] = np.random.normal(DEC_1[k]*3600, abs(DEC_1_err[k]))/3600
             #plt.scatter(ra_err[k],dec_err[k],s=10)
+            
+        for k in tqdm(range(len(RA_1))):
+            ra_err[k] = np.random.normal(RA_1[k]*3600, abs(RA_1_err[k]), (int(sample_num)))/3600
+            dec_err[k] = np.random.normal(DEC_1[k]*3600, abs(DEC_1_err[k]), (int(sample_num)))/3600
         
     #Essentially we define where the object is in our RA/DEC coordinate system. ICRS is the system our coordinates are in.
         dist = primary.vectors(aberrations = 'astrometric')['range']
@@ -117,14 +122,25 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         Long_err = np.zeros(len(dec_err))
         
         #transform all of the randomnly distributed errors
+        print("Begin error transform")
         coord_sky = SkyCoord(ra=ra_err*u.degree, dec=dec_err*u.degree, frame='gcrs', obstime = dateList[0], distance = dist[0]*u.AU,unit=(u.deg,u.deg))
+        print("Begin GeocentricTrueEcliptic transform")
         transformed_coord = coord_sky.transform_to(GeocentricTrueEcliptic(equinox='J2000'))
+        print("Begin lat degree transform")
         Lat_err_arr = transformed_coord.lat.degree
+        print("Begin lon degree transform")
         Long_err_arr = transformed_coord.lon.degree
 
         for j in range(len(Lat_err_arr)):
             Lat_err[j] = np.std(Lat_err_arr[j])
             Long_err[j] = np.std(Long_err_arr[j])
+        
+        # clear astroquery memory, necessary for running more than 2psfs.
+        del coord_sky
+        del transformed_coord
+        del Lat_err_arr
+        del Long_err_arr
+        gc.collect()
         
         #transform all of the randomnly distributed errors
         #for j in range(len(ra_err)):
@@ -168,13 +184,13 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         forsigsDF['long'+ str(numobjects - num)] = Long_1
         forsigsDF['dlat'+ str(numobjects - num)] = DeltaLat_1
         forsigsDF['dlong'+ str(numobjects - num)] = DeltaLong_1
-        num -= 1
+        num -= 1        
 
         
     #create a single line output obs_df file for multimoon
     obsDF = pd.DataFrame(columns = list(updatedDF.columns), index = ["0"])
     obsDF['time'] = updatedDF['time'].iloc[0]
-   
+    
     for i in range(len(updatedDF.columns)-1):
         num = updatedDF.iloc[:,i+1]
 
