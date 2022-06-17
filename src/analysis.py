@@ -65,13 +65,13 @@ def plots(sampler, resultspath, runprops):
 
 		num = 0        
 		for i in range(npsfs):
-			astromdf[ralist[i]],astromdf[declist[i]] = w.pixel_to_world_values(flatchain[:,num].flatten() + runprops.get("stamp_x"), flatchain[:,(num+1)].flatten() + runprops.get("stamp_y"))
+			astromdf[ralist[i]],astromdf[declist[i]] = w.pixel_to_world_values(flatchain[:,(num+1)].flatten() + runprops.get("stamp_y"), flatchain[:,num].flatten() + runprops.get("stamp_x"))
 			num += 3
         
 		num = npsfs - 2
 		num1 = 5
 		for i in range(npsfs-1):        
-			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))
+			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))*(-1)
 			astromdf['ddec('+ str(npsfs - num) + '-1)'] = (astromdf[declist[i+1]] - astromdf[declist[0]])*3600
 			astromdf['dmag('+ str(npsfs - num) + '-1)'] = -2.5*np.log10(flatchain[:,num1].flatten()/flatchain[:,2].flatten())   
 			astromdf['sep('+ str(npsfs - num) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - num) + '-1)']**2 + astromdf['ddec('+ str(npsfs - num) + '-1)']**2)        
@@ -580,6 +580,7 @@ def make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath):
 			error_neg_dra = neg1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]
 			error_pos_dra = pos1sig_dra - obsdf['Delta-RA_'+objectnames[k+1]].iloc[i]  
 			error_temp_dra = (np.abs(error_neg_dra) + np.abs(error_pos_dra))/2
+            
 			error_neg_ddec = neg1sig_ddec - obsdf['Delta-DEC_'+objectnames[k+1]].iloc[i]
 			error_pos_ddec = pos1sig_ddec - obsdf['Delta-DEC_'+objectnames[k+1]].iloc[i]  
 			error_temp_ddec = (np.abs(error_neg_ddec) + np.abs(error_pos_ddec))/2
