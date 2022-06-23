@@ -45,7 +45,7 @@ from analysis import *
 from clustering import *
 import tinytim_psfs.make_psf
 from csv import writer
-import os.path
+import os
 import datetime
 from astropy.io import fits
 # from params.py import df_to_array, npsf_init_guess()
@@ -59,6 +59,16 @@ class ReadJson(object):
     def outProps(self):
         return self.data
 
+cwd = os.getcwd()
+print(cwd)    
+    
+# Make sure you are in a data directory
+if "data" in cwd:
+    print("Loading the runprops and starting guess")
+else:
+    print("When running npsf_run.py, make sure you are located in the object folder in the data directory")
+    sys.exit()
+    
 ### Load run_props from JSON file ###
 runprops = ReadJson("runprops.txt").outProps()
 
@@ -72,10 +82,9 @@ runprops["best_likelihood"] = -np.inf
 # Create results folder
 x = datetime.datetime.now()
 date = str(x.strftime("%Y"))+"-"+str(x.strftime("%m"))+"-"+str(x.strftime("%d"))+"_"+str(x.strftime("%H"))+"."+str(x.strftime("%M"))+"."+str(x.strftime("%S"))
-resultspath = "../results/"+date+"_"+runprops.get('input_image')[8:-5]+"_"+str(runprops.get("npsfs"))+"psf"
+resultspath = "../../results/"+runprops.get('image_path')[8:]+date+"_"+runprops.get('input_image')[:-5]+"_"+str(runprops.get("npsfs"))+"psf"
 if not os.path.exists(resultspath):
     os.makedirs(resultspath)
-runprops["resultspath"] = resultspath
 
 shutil.copy("runprops.txt", resultspath + "/runprops.txt")
 shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
@@ -92,12 +101,18 @@ p0, change_dict = params_to_fitarray(p0_df)
 ndim = np.shape(p0)[1]
 print("ndim:",ndim)
 
+# Reroute to src directory and recreate the resultspath to run from src directory
+os.chdir("../../src")
+
+resultspath = "../results/"+runprops.get('image_path')[8:]+date+"_"+runprops.get('input_image')[:-5]+"_"+str(runprops.get("npsfs"))+"psf"
+runprops["resultspath"] = resultspath
+
 # Loading in image to be solved and making a small postage stamp version
 x = runprops.get("stamp_x")
 y = runprops.get("stamp_y")
 size = runprops.get("stamp_size")
 
-f = runprops.get('input_image')
+f = runprops.get('image_path') + runprops.get('input_image')
 imageraw = getimage_hst(f)
 
 # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)

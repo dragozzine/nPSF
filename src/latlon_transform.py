@@ -159,12 +159,6 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         
         DeltaLat_1 = (Lat_1-Lat_Prim)*3600
         DeltaLong_1 = (Long_1-Long_Prim)*np.cos(Lat_Prim*u.degree)*3600
-        
-        # Ask Dallin about this code!!!
-        #DeltaLong_1 = (Long_1-Long_Prim)*np.cos(Lat_Prim*u.degree)*3600
-        #print(DeltaLong_1)
-        #DeltaLong_1 = (Long_1-Long_Prim)*np.cos(np.deg2rad(Lat_Prim))*3600 
-        #print(DeltaLong_1)
     
         Lat_1_err_arc = (Lat_err)*3600
         Long_1_err_arc = (Long_err)*3600

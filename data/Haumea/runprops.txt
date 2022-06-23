@@ -1,25 +1,26 @@
 {
 	# Initialization properties
-	"input_image": "idsj03wgq_flc.fits",
-	"image_path": "../data/2013_FY27/",    
-	"starting_guess": "startguess_FY27.csv",
+	"input_image": "ico802joq_flc.fits",
+	"image_path": "../data/Haumea/",    
+	"starting_guess": "startguess.csv",
 	"output_filename": "results.csv",
 	"names_dict": {
-		"name_1": "2013 FY27",
-		"name_2": "Moon1"
+		"name_1": "Haumea",
+		"name_2": "Hi'iaka",
+		"name_3": "Namaka"      
 	},
 	"nwalkers": 100,
 	"nsteps": 2500,
 	"nburnin": 2500,
 	"clustering_burnin": 100,
-	"npsfs": 2,
+	"npsfs": 3,
 	"folder": false,
 
 	# TinyTim input parameters
 	"det_int": 22,				# Specifies the camera being used
 	"chip": 2,					#two chips, our images are on UVIS2
-	"xpos": 267,				# x position and y position, give the center of the part of the camera we use, e.g. if (256,256) is the center, we use 512x512 (x and y in ds9 is flipped from x and y in the code) (xpos and ypos should match the center of the object (except still flipped))
-	"ypos": 248,
+	"xpos": 258,				# x position and y position, give the center of the part of the camera we use, e.g. if (256,256) is the center, we use 512x512 (x and y in ds9 is flipped from x and y in the code) (xpos and ypos should match the center of the object (except still flipped))
+	"ypos": 252,
 	"fmin": -5.0,				# Fmin and fmax is the maximum extent that it should check focus values (cuz the focus of HST changes over time due to expansion/contraction from heat).
 	"fmax": 5.0,
 	"fspace": 0.1,				# Leave alone, not worth experimenting with
@@ -29,9 +30,9 @@
 
 	# nPSF settings
 	"processors": 1,			# Don't change, does nothing
-	"stamp_size": 60,			# cut out a chunk that’s “value”x”value”
-	"stamp_x": 237,				# Stamp_x and stamp_y are where to start the stamp (bottom left corner, subtract half the stamp_size from xpos and ypos). Will want to change these depending on the characteristics of the object being analyzed. Will want padding around the object as well.
-	"stamp_y": 218,
+	"stamp_size": 70,			# cut out a chunk that’s “value”x”value”
+	"stamp_x": 223,				# Stamp_x and stamp_y are where to start the stamp (bottom left corner, subtract half the stamp_size from xpos and ypos). Will want to change these depending on the characteristics of the object being analyzed. Will want padding around the object as well.
+	"stamp_y": 217,
 	"noise_cutoff": 3.0,		# the central pixel in the PSF has to be “value” sigma above the noise in the image
 	"maskcheck": true,
 	"cr_clean": true,    
