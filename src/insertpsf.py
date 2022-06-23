@@ -17,7 +17,7 @@ import matplotlib.colors as colors
 # in the function call, but if they are "None" you could use these values
 
 def insertpsf_one(image = np.zeros((100,100)), psf = getpsf_2dgau(), xcen = 49.5, ycen = 49.5,
-                  psfscale = 5, psfheight = 1, runprops = None):
+                  psfheight = 1, psfscale = 5, runprops = None):
 
 	"""
 	Takes a psf created by getpsf.py and inserts it into an input image at the location

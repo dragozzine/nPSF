@@ -30,7 +30,7 @@
 
 	# nPSF settings
 	"processors": 1,			# Don't change, does nothing
-	"stamp_size": 70,			# cut out a chunk that’s “value”x”value”
+	"stamp_size": 70,			# (stamp_size >= 60) cut out a chunk that’s “value”x”value”  
 	"stamp_x": 223,				# Stamp_x and stamp_y are where to start the stamp (bottom left corner, subtract half the stamp_size from xpos and ypos). Will want to change these depending on the characteristics of the object being analyzed. Will want padding around the object as well.
 	"stamp_y": 217,
 	"noise_cutoff": 3.0,		# the central pixel in the PSF has to be “value” sigma above the noise in the image
