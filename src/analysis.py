@@ -31,7 +31,7 @@ def plots(sampler, resultspath, runprops):
 	for i in name_dict.values():
 		objectnames.append(i)
 	print(objectnames)
-	f = astropy.io.fits.open(runprops.get('input_image'))
+	f = astropy.io.fits.open(runprops.get('image_path') + runprops.get('input_image'))
 	w = astropy.wcs.WCS(f[2].header)
     
 	# Getting the stored chain
@@ -133,58 +133,8 @@ def plots(sampler, resultspath, runprops):
 		make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath)
        
 	else:
-		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")
+		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")      
         
-        
-def likelihood_map(flatchain, llhoods, resultspath, runprops):
-	# Set up for making likelihood maps
-	# Begin by getting best fit position. Assume this is the median location of parameters
-        # Load in info about run and open the image's WCS
-	npsfs = runprops.get("npsfs")
-	f = astropy.io.fits.open(runprops.get('input_image'))
-	w = astropy.wcs.WCS(f[2].header)
-
-	# Calculating derived parameters
-	ra1,dec1 = w.pixel_to_world_values(flatchain[:,0].flatten() + runprops.get("stamp_x"), flatchain[:,1].flatten() + runprops.get("stamp_y"))
-	ra2,dec2 = w.pixel_to_world_values(flatchain[:,3].flatten() + runprops.get("stamp_x"), flatchain[:,4].flatten() + runprops.get("stamp_y"))
-    
-	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
-	ddec = (dec2 - dec1)*3600
-	dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten())
-	sep = np.sqrt(dra**2 + ddec**2)
-	pa = np.arctan2(ddec,dra)*57.2958
-	dx = flatchain[:,3].flatten() - flatchain[:,0].flatten()
-	dy = flatchain[:,4].flatten() - flatchain[:,1].flatten()
-
-	# Loading derived parameters into arrays
-	names = np.array(["x1","y1","h1","x2","y2","h2","f"])
-	dnames = names.copy()
-	dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
-	dfchain = flatchain.copy()
-	dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
-	dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)
-
-	# Filtering the samples
-	bool_arr = llhoods > llhoods.max() - 10.0
-
-	# Make brightness separation plot
-	plt.figure()
-	plt.scatter(sep[bool_arr], dmag[bool_arr], c = llhoods[bool_arr], cmap = "viridis", s = 5, alpha = 0.4)
-	plt.xlabel("Separation (arcsec)")
-	plt.ylabel("delta mag")
-	plt.gca().invert_yaxis()
-	color_bar = plt.colorbar()
-	color_bar.set_alpha(1)
-	plt.savefig(resultspath + "/brightness_sep.png", dpi = 300)
-	plt.close()
-
-
-
 
 def plot_best_fit(sampler, image, psfs, focuses, runprops):
 	# Get the best parameter set from the chain
@@ -200,6 +150,196 @@ def plot_best_fit(sampler, image, psfs, focuses, runprops):
 	return params
 
 
+def map_plots(sampler, grid, grid_llhoods, resultspath, runprops):
+	# Load in info about run and open the image's WCS
+	npsfs = 2 #runprops.get("npsfs")  
+	f = astropy.io.fits.open(runprops.get('input_image'))
+	w = astropy.wcs.WCS(f[2].header)
+        
+	# Calculating grid derived parameters   
+	grid_ra1,grid_dec1 = w.pixel_to_world_values(grid[:,1].flatten() + runprops.get("stamp_y"), grid[:,0].flatten() + runprops.get("stamp_x"))
+	grid_ra2,grid_dec2 = w.pixel_to_world_values(grid[:,4].flatten() + runprops.get("stamp_y"), grid[:,3].flatten() + runprops.get("stamp_x"))
+	grid_dra = (grid_ra2 - grid_ra1)*3600*np.cos(np.deg2rad(grid_dec1))*(-1)
+	grid_ddec = (grid_dec2 - grid_dec1)*3600
+	grid_dmag = -2.5*np.log10(grid[:,5].flatten()/grid[:,2].flatten())
+	grid_sep = np.sqrt(grid_dra**2 + grid_ddec**2)
+	grid_pa = np.arctan2(grid_ddec,grid_dra)*57.2958
+	grid_dx = grid[:,3].flatten() - grid[:,0].flatten()
+	grid_dy = grid[:,4].flatten() - grid[:,1].flatten()
+
+	# Loading derived parameters into arrays
+	names = np.array(["x1","y1","h1","x2","y2","h2","f"])
+	dnames = names.copy()
+	dnames = np.append(dnames, ["dra","ddec","dmag","sep","pa","dx","dy"])
+	dfchain = grid.copy()
+	dfchain = np.concatenate((dfchain,np.array(grid_dra).reshape((grid_dra.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_ddec).reshape((grid_ddec.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_dmag).reshape((grid_dmag.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_sep).reshape((grid_sep.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_pa).reshape((grid_pa.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_dx).reshape((grid_dx.size,1)) ), axis = 1)
+	dfchain = np.concatenate((dfchain,np.array(grid_dy).reshape((grid_dy.size,1)) ), axis = 1)    
+
+	# Filtering the samples
+	bool_arr = grid_llhoods > grid_llhoods.max() - runprops.get('sep_grid_adj')
+    
+	dmag_best_llhood = grid_llhoods == grid_llhoods.max()
+	best_dmag = grid_dmag[dmag_best_llhood]
+	bool_dmag = grid_dmag == best_dmag  
+	#bool_2 = llhoods > llhoods.max() - 100.0
+	#dmag_dif = np.abs(dmag[bool_2] - best_dmag)
+	#dmag_llhoods = 0 - dmag_dif
+
+	ralist = []
+	for i in range(npsfs):
+		ralist = np.append(ralist,'ra' + str(i + 1))        
+	declist = []
+	for i in range(npsfs):
+		declist = np.append(declist,'dec' + str(i + 1))            
+	astromlist = np.append(ralist,declist)      
+    
+	map_output = pd.DataFrame(columns = astromlist, index = range(len(grid_dx[bool_dmag])))
+	map_output["dra(2-1)"] = grid_dra[bool_dmag]
+	map_output["ddec(2-1)"] = grid_ddec[bool_dmag]
+	map_output["dmag(2-1)"] = grid_dmag[bool_dmag]
+	map_output["sep(2-1)"] = grid_sep[bool_dmag]
+	map_output["pa(2-1)"] = grid_pa[bool_dmag]    
+	map_output["dx(2-1)"] = grid_dx[bool_dmag]
+	map_output["dy(2-1)"] = grid_dy[bool_dmag]
+	#map_output["llhoods"] = llhoods[bool_arr]
+	print("DataFrame shape:",map_output.shape)
+	#print(map_output)
+    
+	# Making plots
+	if (sampler.shape != np.zeros((1,1)).shape):    
+		likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultspath, runprops)
+        
+	likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, resultspath, runprops)
+	latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, runprops)
+
+def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultspath, runprops):
+	# Getting the stored chain
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))
+	chain = sampler.get_chain(discard=int(burnin+clusterburn), flat = False)
+	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
+	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
+	#print("Flatchain shape:",chain.shape)
+    
+	# Calculating chain derived parameters
+	ra1,dec1 = w.pixel_to_world_values(flatchain[:,1].flatten() + runprops.get("stamp_y"), flatchain[:,0].flatten() + runprops.get("stamp_x"))
+	ra2,dec2 = w.pixel_to_world_values(flatchain[:,4].flatten() + runprops.get("stamp_y"), flatchain[:,3].flatten() + runprops.get("stamp_x"))
+	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))*(-1)
+	ddec = (dec2 - dec1)*3600 
+	dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten()) #h2/h1
+	sep = np.sqrt(dra**2 + ddec**2) 
+	pa = np.arctan2(ddec,dra)*57.2958
+	dx = flatchain[:,3].flatten() - flatchain[:,0].flatten() #x2 - x1
+	dy = flatchain[:,4].flatten() - flatchain[:,1].flatten() #y2 - y1
+    
+	sep = np.append(grid_sep, sep)
+	dmag = np.append(grid_dmag, dmag)    
+	llhoods = np.append(grid_llhoods, llhoods)
+    
+	# Filtering the samples    
+	bool_arr = llhoods > grid_llhoods.max() - runprops.get('sep_grid_adj')
+    
+	# Make brightness separation plot
+	plt.figure()
+	plt.scatter(sep[bool_arr], dmag[bool_arr], c = llhoods[bool_arr], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("Separation (arcsec)")
+	plt.ylabel("delta mag")
+	plt.gca().invert_yaxis()
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig("brightness_sep_both.png", dpi = 300)
+	plt.close()
+
+def likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, resultspath, runprops):   
+	# Make brightness separation plot
+	plt.figure()
+	plt.scatter(grid_sep[bool_arr], grid_dmag[bool_arr], c = grid_llhoods[bool_arr], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("Separation (arcsec)")
+	plt.ylabel("delta mag")
+	plt.gca().invert_yaxis()
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/brightness_sep_grid.png", dpi = 300)
+	plt.close()
+    
+	# Make dxdy_dmag.max-llhoods plot
+	plt.figure()
+	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("dy")
+	plt.ylabel("dx")
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/dx_dy_llhoods.png", dpi = 300)
+	plt.close()  
+    
+	# Make dxdy_dmag.max-llhoods_filtered plot
+	plt.figure()
+	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", vmin = grid_llhoods[bool_dmag].min() + runprops.get('llhood_map_adj'), vmax = grid_llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
+	plt.xlabel("dy")
+	plt.ylabel("dx")
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/dx_dy_llhoods_adjusted.png", dpi = 300)
+	plt.close()     
+
+	print("llhood.max:", grid_llhoods[bool_dmag].max(), "llhoods.min:",grid_llhoods[bool_dmag].min())
+    
+def latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, runprops):
+	llhoods = grid_llhoods
+	npsfs = 2
+
+	name_dict = runprops.get("names_dict")
+	objectnames = []
+	for i in name_dict.values():
+		objectnames.append(i)
+
+	obsdf = make_obsdf(dfchain, map_output, f, objectnames, npsfs, resultspath)
+	print("Converting RA/DEC to LAT/LONG")
+	forsigsdf = convert_to_primary_centric(obsdf, objectnames, npsfs, resultspath, 1000)
+	#print(forsigsdf[0:10])
+    
+	dlat = forsigsdf['dlat1']
+	dlong = forsigsdf['dlong1']
+        
+	# Make latlon_dmag plot
+	##plt.figure()
+	##plt.scatter(dlong, dlat, c = dmag_ll, cmap = "viridis", s = 5, alpha = 0.4)
+	##plt.xlabel("dlong (arcsec)")
+	##plt.ylabel("dlat (arcsec)")
+	#plt.gca().invert_xaxis()
+	#plt.xlim([0,60])
+	#plt.ylim([0,60])
+	##color_bar = plt.colorbar()
+	##color_bar.set_alpha(1)
+	##plt.savefig("dlat_dlong.png", dpi = 300)
+	##plt.close()
+    
+	# Make latlon_dmag plot
+	plt.figure()
+	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("dlong")
+	plt.ylabel("dlat")
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/dlat_dlong_llhoods.png", dpi = 300)
+	plt.close()  
+    
+	# Make latlon_dmag_adjusted plot
+	plt.figure()
+	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", vmin = llhoods[bool_dmag].min() + runprops.get('llhood_map_adj'), vmax = llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
+	plt.xlabel("dlong")
+	plt.ylabel("dlat")
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/dlat_dlong_llhoods_adjusted.png", dpi = 300)
+	plt.close() 
+
+    
 def auto_window(taus, c):
 	m = np.arange(len(taus)) < c * taus
 	if np.any(m):

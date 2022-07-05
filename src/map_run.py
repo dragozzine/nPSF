@@ -170,69 +170,73 @@ def make_map(psf1params, resultspath, runprops):
     return grid, llhoods
 
 
-# Machinery for running from a folder of images
+# Machinery for running from map_run
 import os
 import glob
 cwd = os.getcwd()
-print(cwd)
+#print(cwd)
 
 # Make sure you are in a data directory
 if "data" in cwd:
-    folder = cwd
-    images = glob.glob("*.fits")
-    os.chdir("../../src")
+    runprops = ReadJson("runprops.txt").outProps()
 else:
-    print("When running multi_map.py, make sure you are located in the data folder")
+    print("When running map_run.py, make sure you are located in the data folder")
     sys.exit()
 
+# Run nPSF for 1 psf
+#bestfit, resultspath = npsf_run(runprops)
+#np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
+params_df = pd.read_csv(runprops.get("starting_guess"),sep=',',index_col=0)
+bestfit = params_df.iloc[0,[0,1,2,-1]].to_numpy()
+#print(bestfit)
+#bestfit = np.array([29.169275600687797,29.423152192793545,11413.98208305506,-3.5721513382928105])
+resultsname = runprops["image_path"][8:-1] + "_map/" + runprops["input_image"][:-5] + "_" + runprops["map_identifier"]
+resultspath = "../../results/" + resultsname
+    
+# Create results folder (check to see if it already exists first)
+if os.path.exists(resultspath):
+    overwrite = "placeholder"
+    while overwrite != "yes":
+        overwrite = input("Results directory already exists. Would you like to continue to overwrite it? (yes or no)")
+        if overwrite == "yes":
+            #os.makedirs(resultspath)
+            print("Results folder overwritten")
+        elif overwrite == "no":
+            print("results not overwritten. Please choose new image to process.")
+            sys.exit()
+        else:
+            print("please enter yes or no")
+else:
+    os.makedirs(resultspath) 
+runprops["resultspath"] = resultspath
+    
+# Copy input data to the results folder
+shutil.copy("runprops.txt", resultspath + "/runprops.txt")
+shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
+shutil.copy(runprops.get("input_image"), resultspath + "/" + runprops.get('input_image'))
+
+# set up fullpath for make_map code
+folder = cwd
+fullpath = folder + "/" + runprops.get('input_image')
+runprops["image_name"] = runprops["input_image"]
+runprops["input_image"] = fullpath
+#runprops["npsfs"] = 1
+
+# Swap over to the src directory because I don't want to rewrite the rest of the code
+os.chdir("../../src")
 print(os.getcwd())
-# Loop over each image
-for image in images:
-    fullpath = folder + "/" + image
-    print(fullpath)
-    runprops = ReadJson("runprops.txt").outProps()
-    runprops["input_image"] = fullpath
-    runprops["image_name"] = image[:-5]
-    runprops["npsfs"] = 1
+resultspath = "../results/" + resultsname
 
-    # Run nPSF for 1 psf
-    #bestfit, resultspath = npsf_run(runprops)
-    #np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
-    bestfit = np.array([29.169275600687797,29.423152192793545,11413.98208305506,-3.5721513382928105])
-    resultspath = "../results/map_multi_" + runprops["image_name"]
+# Make likelihood map
+grid, grid_llhoods = make_map(bestfit, resultspath, runprops)
     
-    # Create results folder
-    if os.path.exists(resultspath):
-        overwrite = "placeholder"
-        while overwrite != "yes":
-            overwrite = input("Results directory already exists. Would you like to continue to overwrite it? (yes or no)")
-            if overwrite == "yes":
-                #os.makedirs(resultspath)
-                print("Results folder overwritten")
-            elif overwrite == "no":
-                print("results not overwritten. Please choose new image to process.")
-                sys.exit()
-            else:
-                print("please enter yes or no")
-    else:
-        os.makedirs(resultspath) 
-    runprops["resultspath"] = resultspath
-    
-    #if not os.path.exists(resultspath):
-        #os.makedirs(resultspath)
-   # runprops["resultspath"] = resultspath
+np.save(resultspath + '/grid.npy',grid)
+np.save(resultspath + '/llhoods.npy',grid_llhoods)
 
-    shutil.copy("runprops.txt", resultspath + "/runprops.txt")
-    shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
-    #shutil.copy(runprops.get("input_image")[8:], resultspath + "/" + runprops.get('input_image')[8:-5])
+# Fake the sampler parameter
+sampler = np.zeros((1,1))
 
-
-    # Make likelihood map
-    grid, llhoods = make_map(bestfit, resultspath, runprops)
-    
-    np.save(resultspath + '/grid.npy',grid)
-    np.save(resultspath + '/llhoods.npy',llhoods)
-    
-    # Make plots
-    likelihood_map(grid, llhoods, resultspath, runprops)
+# Make plots
+#likelihood_map(grid, llhoods, resultspath, runprops)
+map_plots(sampler, grid, grid_llhoods, resultspath, runprops)
 
