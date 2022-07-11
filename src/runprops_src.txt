@@ -41,8 +41,8 @@
 
 	# Map settings
 	"map_identifier": "super_fine",	# Add an additional map identifier name to avoid replacing old files.
-	"sep_grid_adj": 100,		# Adjust the number of likelihood values that appear on the seperation grid
-	"llhood_map_adj": 1000,		# by increasing this value, you adjust the minimum likelihood color to reduce noise in the image
-	"dx/dy_value": 0.5			# Set the separation between x and y when running the grid
+	"sep_grid_adj": 100,		# Adjust the number of likelihood values that appear on the seperation grid (the bigger the number, the more values that show up)
+	"llhood_map_adj": 150,		# Sets how far under the highest likelihood value shows up in the adjusted graph
+	"dx-dy_value": 0.5			# Set the separation between x and y when running the grid
 
 }

@@ -279,7 +279,7 @@ def likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, gr
     
 	# Make dxdy_dmag.max-llhoods_filtered plot
 	plt.figure()
-	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", vmin = grid_llhoods[bool_dmag].min() + runprops.get('llhood_map_adj'), vmax = grid_llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
+	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", vmin = grid_llhoods[bool_dmag].max() - runprops.get('llhood_map_adj'), vmax = grid_llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
 	plt.xlabel("dy")
 	plt.ylabel("dx")
 	color_bar = plt.colorbar()
@@ -331,7 +331,7 @@ def latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, run
     
 	# Make latlon_dmag_adjusted plot
 	plt.figure()
-	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", vmin = llhoods[bool_dmag].min() + runprops.get('llhood_map_adj'), vmax = llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
+	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", vmin = llhoods[bool_dmag].max() - runprops.get('llhood_map_adj'), vmax = llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
 	plt.xlabel("dlong")
 	plt.ylabel("dlat")
 	color_bar = plt.colorbar()

@@ -130,9 +130,10 @@ def make_map(psf1params, resultspath, runprops):
     runprops["cd_kernel"] = cd_kernel
 
     # Set up a sampling grid. Initially, have a dx,dy of 1 pixel. Set up for 100 bins of dh
-    dx = 0.5
+    # normal dx-dy_value is 0.5
+    dx = runprops.get("dx-dy_value")
     nx = int(size/dx)
-    dy = 0.5
+    dy = runprops.get("dx-dy_value")
     ny = int(size/dy)
     dh = psf1params[2] - hmin
     nh = 100
