@@ -34,7 +34,7 @@
 	"stamp_y": 218,
 	"noise_cutoff": 3.0,		# the central pixel in the PSF has to be “value” sigma above the noise in the image
 	"maskcheck": true,
-	"cr_clean": true,			# Currently does nothing.       
+	"cr_clean": true,			# Clean cosmic rays from image, true or false (keep it lowercase)   
 	"cr_objlim": 5.0,			# checks for cosmic ray pixels and fixes them (might accidentally think your target is a cosmic ray. If it does, you need to change the value to a larger value [will get an error telling you your object is a cosmic ray].)
 	"use_clustering": true,		# keep this as true
 	"max_prune": 0.8,			# maximum that the clustering algorithm can remove. probably don't need to change this

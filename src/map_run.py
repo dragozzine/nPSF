@@ -53,51 +53,64 @@ def make_map(psf1params, resultspath, runprops):
 
     f = runprops.get('input_image')
     imageraw = getimage_hst(f)
-
+ 
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
     import ccdproc
-    cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-    image = np.array(cr_cleaned)[x:x+size,y:y+size]
+    if runprops.get('cr_clean')==True:
+        print("cr_clean set to True")
+        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
+        image = np.array(cr_cleaned)[x:x+size,y:y+size]
     
-    plt.figure()
-    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
-    plt.colorbar()
-    plt.savefig(resultspath + "/cleanedimage.png")
-    plt.figure()
-    plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-    plt.colorbar()
-    plt.savefig(resultspath + "/crmask.png")
-    plt.close("all")
+        plt.figure()
+        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/cleanedimage.png")
+        plt.figure()
+        plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/crmask.png")
+        plt.close("all")
 
-    # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
-    reset = False
-    while True:
-        crredo = False
-        if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
-            crredo = True
-        if crredo:
-            cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
-            plt.figure()
-            plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
-            plt.colorbar()
-            plt.savefig(resultspath + "/cleanedimage.png")
-            plt.figure()
-            plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-            plt.colorbar()
-            plt.savefig(resultspath + "/crmask.png")
-            plt.close("all")
+        # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
+        reset = False
+        while True:
+            crredo = False
+            if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
+                crredo = True
+            if crredo:
+                cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+                plt.figure()
+                plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
+                plt.colorbar()
+                plt.savefig(resultspath + "/cleanedimage.png")
+                plt.figure()
+                plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+                plt.colorbar()
+                plt.savefig(resultspath + "/crmask.png")
+                plt.close("all")
             
-            if reset:
-                print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
-                print("Consider increasing the objlim in runprops.")
-                #sys.exit()
-                return -1, resultspath
-            reset = True
-        else:
-            break
-    image = np.array(cr_cleaned)[x:x+size,y:y+size]
+                if reset:
+                    print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
+                    print("Consider increasing the objlim in runprops.")
+                    #sys.exit()
+                    return -1, resultspath
+                reset = True
+            else:
+                break
+        image = np.array(cr_cleaned)[x:x+size,y:y+size]
+        
+    # Print out image that hasn't been cleaned
+    else:
+        print("cr_clean set to False")
+        image = imageraw[x:x+size,y:y+size]
     
+        plt.figure()
+        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/cleanedimage.png")
+        plt.close("all")
+      
     # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
     if np.nanmin(image) < 0:
         image = image - np.floor(np.nanmin(image)) + 1.0

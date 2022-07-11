@@ -61,6 +61,8 @@ class ReadJson(object):
 
 cwd = os.getcwd()
 print(cwd)    
+ 
+# This code is designed to be run from within an object folder in the data directory.    
     
 # Make sure you are in a data directory
 if "data" in cwd:
@@ -118,60 +120,75 @@ imageraw = getimage_hst(f)
 # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
 # This may also be irrelevant if we move to simultaneous pair fitting
 import ccdproc
-cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-image = np.array(cr_cleaned)[x:x+size,y:y+size]
+if runprops.get('cr_clean')==True:
+    print("cr_clean set to True")
+    cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
 
-plt.figure()
-plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
-plt.colorbar()
-plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
-plt.savefig(resultspath + "/cleanedimage.png")
-plt.figure()
-plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-plt.colorbar()
-plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
-plt.savefig(resultspath + "/crmask.png")
-plt.close("all")
+    plt.figure()
+    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+    plt.savefig(resultspath + "/cleanedimage.png")
+    plt.figure()
+    plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+    plt.savefig(resultspath + "/crmask.png")
+    plt.close("all")
 
 
-# Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
-reset = False
-maskcheck = runprops.get("maskcheck")
+    # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
+    reset = False
+    maskcheck = runprops.get("maskcheck")
 
-while maskcheck:
-    crredo = False
-    for i in range(nwalkers):
-        #print(i,crmask[int(p0[i,0]),int(p0[i,1])])
-        if crmask[x:x+size,y:y+size][int(p0[i,0]),int(p0[i,1])]:
-            crredo = True
-    if crredo:
-        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+    while maskcheck:
+        crredo = False
+        for i in range(nwalkers):
+            #print(i,crmask[int(p0[i,0]),int(p0[i,1])])
+            if crmask[x:x+size,y:y+size][int(p0[i,0]),int(p0[i,1])]:
+                crredo = True
+        if crredo:
+            cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
 
-        plt.figure()
-        plt.imshow(cr_cleaned[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-        plt.colorbar()
-        plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
-        plt.savefig(resultspath + "/cleanedimage.png")
-        plt.figure()
-        plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-        plt.colorbar()
-        plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
-        plt.savefig(resultspath + "/crmask.png")
-        plt.close("all")
+            plt.figure()
+            plt.imshow(cr_cleaned[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+            plt.savefig(resultspath + "/cleanedimage.png")
+            plt.figure()
+            plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.scatter(p0[:,1].flatten(), p0[:,0].flatten(), color = "blue", marker = "x", s = 5, alpha = 0.2)
+            plt.savefig(resultspath + "/crmask.png")
+            plt.close("all")
 
-        if reset:
-           print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
-           print("Consider increasing the objlim in runprops.")
-           sys.exit()
-        reset = True
-    else:
-        break
-image = np.array(cr_cleaned)[x:x+size,y:y+size]
+            if reset:
+               print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
+               print("Consider increasing the objlim in runprops.")
+               sys.exit()
+            reset = True
+        else:
+            break
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
 
+# Print out image that hasn't been cleaned
+else:
+    print("cr_clean set to False")
+    image = imageraw[x:x+size,y:y+size]
+    
+    plt.figure()
+    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.savefig(resultspath + "/cleanedimage.png")
+    plt.close("all")
 
 # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
 if np.nanmin(image) < 0:
     image = image - np.floor(np.nanmin(image)) + 1.0
+
+# Save the image array in case of the need to reconstruct the plot_best_fit plots
+np.save(resultspath + '/img_arr.npy',image)
 
 # Calculating image noise characteristics for priors
 runprops["med_noise"] = np.median(image)
@@ -210,6 +227,9 @@ psfs = np.empty((testpsf.shape[0],testpsf.shape[1],numpsfs))
 for i, focus in enumerate(focuses):
     filename = "modelpsfs/wfc3psf_" + str(ndet) + "_" + str(nchip) + "_" + filter + "_" + str(xpos) + "_" + str(ypos) + "_" + str(round(focus,1)) + "_" + str(size_psf) + "_" + str(sample_factor) + ".fits"
     psfs[:,:,i] = getpsf_hst(filename)
+
+# Save the psf array in case of the need to reconstruct the plot_best_fit plots
+np.save(resultspath + '/psfs_arr.npy',psfs)
 
 # Getting charge diffusion kernel from tiny tim psf header
 head = fits.open(filename)[0].header
