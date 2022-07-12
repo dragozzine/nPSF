@@ -57,47 +57,60 @@ def make_map(psf1params, resultspath, runprops):
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
     import ccdproc
-    cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-    image = np.array(cr_cleaned)[x:x+size,y:y+size]
+    if runprops.get('cr_clean')==True:
+        print("cr_clean set to True")
+        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
+        image = np.array(cr_cleaned)[x:x+size,y:y+size]
     
-    plt.figure()
-    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
-    plt.colorbar()
-    plt.savefig(resultspath + "/cleanedimage.png")
-    plt.figure()
-    plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-    plt.colorbar()
-    plt.savefig(resultspath + "/crmask.png")
-    plt.close("all")
+        plt.figure()
+        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/cleanedimage.png")
+        plt.figure()
+        plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/crmask.png")
+        plt.close("all")
 
-    # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
-    reset = False
-    while True:
-        crredo = False
-        if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
-            crredo = True
-        if crredo:
-            cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
-            plt.figure()
-            plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
-            plt.colorbar()
-            plt.savefig(resultspath + "/cleanedimage.png")
-            plt.figure()
-            plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-            plt.colorbar()
-            plt.savefig(resultspath + "/crmask.png")
-            plt.close("all")
+        # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
+        reset = False
+        while True:
+            crredo = False
+            if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
+                crredo = True
+            if crredo:
+                cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+                plt.figure()
+                plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
+                plt.colorbar()
+                plt.savefig(resultspath + "/cleanedimage.png")
+                plt.figure()
+                plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+                plt.colorbar()
+                plt.savefig(resultspath + "/crmask.png")
+                plt.close("all")
             
-            if reset:
-                print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
-                print("Consider increasing the objlim in runprops.")
-                #sys.exit()
-                return -1, resultspath
-            reset = True
-        else:
-            break
-    image = np.array(cr_cleaned)[x:x+size,y:y+size]
+                if reset:
+                    print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
+                    print("Consider increasing the objlim in runprops.")
+                    #sys.exit()
+                    return -1, resultspath
+                reset = True
+            else:
+                break
+        image = np.array(cr_cleaned)[x:x+size,y:y+size]
     
+    # Print out image that hasn't been cleaned
+    else:
+        print("cr_clean set to False")
+        image = imageraw[x:x+size,y:y+size]
+    
+        plt.figure()
+        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+        plt.colorbar()
+        plt.savefig(resultspath + "/cleanedimage.png")
+        plt.close("all")
+        
     # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
     if np.nanmin(image) < 0:
         image = image - np.floor(np.nanmin(image)) + 1.0
@@ -130,9 +143,10 @@ def make_map(psf1params, resultspath, runprops):
     runprops["cd_kernel"] = cd_kernel
 
     # Set up a sampling grid. Initially, have a dx,dy of 1 pixel. Set up for 100 bins of dh
-    dx = 0.5
+    # normal dx-dy_value is 0.5
+    dx = runprops.get("dx-dy_value")
     nx = int(size/dx)
-    dy = 0.5
+    dy = runprops.get("dx-dy_value")
     ny = int(size/dy)
     dh = psf1params[2] - hmin
     nh = 100
@@ -180,7 +194,8 @@ print(cwd)
 if "data" in cwd:
     folder = cwd
     images = glob.glob("*.fits")
-    os.chdir("../../src")
+    runprops = ReadJson("runprops.txt").outProps()
+    #os.chdir("../../src")
 else:
     print("When running multi_map.py, make sure you are located in the data folder")
     sys.exit()
@@ -190,16 +205,20 @@ print(os.getcwd())
 for image in images:
     fullpath = folder + "/" + image
     print(fullpath)
-    runprops = ReadJson("runprops.txt").outProps()
-    runprops["input_image"] = fullpath
-    runprops["image_name"] = image[:-5]
-    runprops["npsfs"] = 1
+    #runprops["input_image"] = fullpath
+    runprops["input_image"] = image
+    #runprops["npsfs"] = 1
 
     # Run nPSF for 1 psf
     #bestfit, resultspath = npsf_run(runprops)
-    #np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
-    bestfit = np.array([29.169275600687797,29.423152192793545,11413.98208305506,-3.5721513382928105])
-    resultspath = "../results/map_multi_" + runprops["image_name"]
+    #np.array([x1, y1, h1, focus]) from nPSF run results (primary object)
+    params_df = pd.read_csv(runprops.get("starting_guess"),sep=',',index_col=0)
+    bestfit = params_df.iloc[0,[0,1,2,-1]].to_numpy()
+    #print(bestfit)
+    #bestfit = np.array([29.169275600687797,29.423152192793545,11413.98208305506,-3.5721513382928105])
+    resultsname = runprops["image_path"][8:-1] + "_map_multi/" + runprops["input_image"][:-5] + "_" + runprops["map_identifier"]
+    resultspath = "../../results/" + resultsname
+    #resultspath = "../results/map_multi_" + runprops["image_name"]
     
     # Create results folder
     if os.path.exists(resultspath):
@@ -224,8 +243,19 @@ for image in images:
 
     shutil.copy("runprops.txt", resultspath + "/runprops.txt")
     shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
-    #shutil.copy(runprops.get("input_image")[8:], resultspath + "/" + runprops.get('input_image')[8:-5])
+    shutil.copy(runprops.get("input_image"), resultspath + "/" + runprops.get('input_image'))
 
+    # set up fullpath for make_map code
+    folder = cwd
+    fullpath = folder + "/" + runprops.get('input_image')
+    runprops["image_name"] = runprops["input_image"]
+    runprops["input_image"] = fullpath
+    #runprops["npsfs"] = 1
+
+    # Swap over to the src directory because I don't want to rewrite the rest of the code
+    os.chdir("../../src")
+    print(os.getcwd())
+    resultspath = "../results/" + resultsname
 
     # Make likelihood map
     grid, llhoods = make_map(bestfit, resultspath, runprops)
@@ -233,6 +263,9 @@ for image in images:
     np.save(resultspath + '/grid.npy',grid)
     np.save(resultspath + '/llhoods.npy',llhoods)
     
-    # Make plots
-    likelihood_map(grid, llhoods, resultspath, runprops)
+    # Fake the sampler (chain) parameter for map_plots
+    sampler = np.zeros((1,1))
 
+    # Make plots
+    #likelihood_map(grid, llhoods, resultspath, runprops)
+    map_plots(sampler, grid, grid_llhoods, resultspath, runprops)

@@ -71,7 +71,7 @@ def plots(sampler, resultspath, runprops):
 		num = npsfs - 2
 		num1 = 5
 		for i in range(npsfs-1):        
-			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))*(-1)
+			astromdf['dra('+ str(npsfs - num) + '-1)'] = (astromdf[ralist[i+1]] - astromdf[ralist[0]])*3600*np.cos(np.deg2rad(astromdf[declist[0]]))#*(-1)
 			astromdf['ddec('+ str(npsfs - num) + '-1)'] = (astromdf[declist[i+1]] - astromdf[declist[0]])*3600
 			astromdf['dmag('+ str(npsfs - num) + '-1)'] = -2.5*np.log10(flatchain[:,num1].flatten()/flatchain[:,2].flatten())   
 			astromdf['sep('+ str(npsfs - num) + '-1)'] = np.sqrt(astromdf['dra('+ str(npsfs - num) + '-1)']**2 + astromdf['ddec('+ str(npsfs - num) + '-1)']**2)        
@@ -159,7 +159,7 @@ def map_plots(sampler, grid, grid_llhoods, resultspath, runprops):
 	# Calculating grid derived parameters   
 	grid_ra1,grid_dec1 = w.pixel_to_world_values(grid[:,1].flatten() + runprops.get("stamp_y"), grid[:,0].flatten() + runprops.get("stamp_x"))
 	grid_ra2,grid_dec2 = w.pixel_to_world_values(grid[:,4].flatten() + runprops.get("stamp_y"), grid[:,3].flatten() + runprops.get("stamp_x"))
-	grid_dra = (grid_ra2 - grid_ra1)*3600*np.cos(np.deg2rad(grid_dec1))*(-1)
+	grid_dra = (grid_ra2 - grid_ra1)*3600*np.cos(np.deg2rad(grid_dec1))#*(-1)
 	grid_ddec = (grid_dec2 - grid_dec1)*3600
 	grid_dmag = -2.5*np.log10(grid[:,5].flatten()/grid[:,2].flatten())
 	grid_sep = np.sqrt(grid_dra**2 + grid_ddec**2)
@@ -229,7 +229,7 @@ def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultsp
 	# Calculating chain derived parameters
 	ra1,dec1 = w.pixel_to_world_values(flatchain[:,1].flatten() + runprops.get("stamp_y"), flatchain[:,0].flatten() + runprops.get("stamp_x"))
 	ra2,dec2 = w.pixel_to_world_values(flatchain[:,4].flatten() + runprops.get("stamp_y"), flatchain[:,3].flatten() + runprops.get("stamp_x"))
-	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))*(-1)
+	dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))#*(-1)
 	ddec = (dec2 - dec1)*3600 
 	dmag = -2.5*np.log10(flatchain[:,5].flatten()/flatchain[:,2].flatten()) #h2/h1
 	sep = np.sqrt(dra**2 + ddec**2) 

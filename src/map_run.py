@@ -199,7 +199,7 @@ else:
 
 # Run nPSF for 1 psf
 #bestfit, resultspath = npsf_run(runprops)
-#np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
+#np.array([x1, y1, h1, focus]) from nPSF run results (primary object)
 params_df = pd.read_csv(runprops.get("starting_guess"),sep=',',index_col=0)
 bestfit = params_df.iloc[0,[0,1,2,-1]].to_numpy()
 #print(bestfit)
@@ -253,4 +253,3 @@ sampler = np.zeros((1,1))
 # Make plots
 #likelihood_map(grid, llhoods, resultspath, runprops)
 map_plots(sampler, grid, grid_llhoods, resultspath, runprops)
-
