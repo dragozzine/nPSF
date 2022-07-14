@@ -123,11 +123,23 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
         
         #transform all of the randomnly distributed errors
         print("Begin error transform")
-        coord_sky = SkyCoord(ra=ra_err*u.degree, dec=dec_err*u.degree, frame='gcrs', obstime = dateList[0], distance = dist[0]*u.AU,unit=(u.deg,u.deg))
+        coord_sky_1 = SkyCoord(ra=ra_err*u.degree, dec=dec_err*u.degree, frame='gcrs', obstime = dateList[0], distance = dist[0]*u.AU,unit=(u.deg,u.deg))
+        
+        coord_sky = coord_sky_1
+        del coord_sky_1
+        gc.collect()
+        
         print("Begin GeocentricTrueEcliptic transform")
-        transformed_coord = coord_sky.transform_to(GeocentricTrueEcliptic(equinox='J2000'))
+        transformed_coord_1 = coord_sky.transform_to(GeocentricTrueEcliptic(equinox='J2000'))
+        
+        transformed_coord = transformed_coord_1
+        del coord_sky
+        del transformed_coord_1
+        gc.collect()
+        
         print("Begin lat degree transform")
         Lat_err_arr = transformed_coord.lat.degree
+        
         print("Begin lon degree transform")
         Long_err_arr = transformed_coord.lon.degree
 
@@ -136,7 +148,7 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
             Long_err[j] = np.std(Long_err_arr[j])
         
         # clear astroquery memory, necessary for running more than 2psfs.
-        del coord_sky
+        #del coord_sky
         del transformed_coord
         del Lat_err_arr
         del Long_err_arr

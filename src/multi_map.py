@@ -192,7 +192,7 @@ print(cwd)
 
 # Make sure you are in a data directory
 if "data" in cwd:
-    folder = cwd
+    #folder = cwd
     images = glob.glob("*.fits")
     runprops = ReadJson("runprops.txt").outProps()
     #os.chdir("../../src")
@@ -203,11 +203,7 @@ else:
 print(os.getcwd())
 # Loop over each image
 for image in images:
-    fullpath = folder + "/" + image
-    print(fullpath)
-    #runprops["input_image"] = fullpath
     runprops["input_image"] = image
-    #runprops["npsfs"] = 1
 
     # Run nPSF for 1 psf
     #bestfit, resultspath = npsf_run(runprops)
@@ -237,10 +233,7 @@ for image in images:
         os.makedirs(resultspath) 
     runprops["resultspath"] = resultspath
     
-    #if not os.path.exists(resultspath):
-        #os.makedirs(resultspath)
-   # runprops["resultspath"] = resultspath
-
+    # Copy input data to the results folder
     shutil.copy("runprops.txt", resultspath + "/runprops.txt")
     shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
     shutil.copy(runprops.get("input_image"), resultspath + "/" + runprops.get('input_image'))
