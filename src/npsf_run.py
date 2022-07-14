@@ -115,7 +115,7 @@ y = runprops.get("stamp_y")
 size = runprops.get("stamp_size")
 
 f = runprops.get('image_path') + runprops.get('input_image')
-imageraw = getimage_hst(f)
+imageraw, gain = getimage_hst(f)
 
 # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
 # This may also be irrelevant if we move to simultaneous pair fitting
@@ -188,7 +188,7 @@ if np.nanmin(image) < 0:
     image = image - np.floor(np.nanmin(image)) + 1.0
 
 # Save the image array in case of the need to reconstruct the plot_best_fit plots
-np.save(resultspath + '/img_arr.npy',image)
+#np.save(resultspath + '/img_arr.npy',image)
 
 # Calculating image noise characteristics for priors
 runprops["med_noise"] = np.median(image)
@@ -229,7 +229,7 @@ for i, focus in enumerate(focuses):
     psfs[:,:,i] = getpsf_hst(filename)
 
 # Save the psf array in case of the need to reconstruct the plot_best_fit plots
-np.save(resultspath + '/psfs_arr.npy',psfs)
+#np.save(resultspath + '/psfs_arr.npy',psfs)
 
 # Getting charge diffusion kernel from tiny tim psf header
 head = fits.open(filename)[0].header
@@ -273,5 +273,5 @@ print("Beginning sample")
 sampler.run_mcmc(state, nsteps, progress = True)
 
 # Run analysis and make plots
-plots(sampler, resultspath, runprops)
 plot_best_fit(sampler, image, psfs, focuses, runprops)
+plots(sampler, resultspath, runprops)
