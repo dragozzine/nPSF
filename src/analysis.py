@@ -180,24 +180,67 @@ def map_plots(sampler, grid, grid_llhoods, resultspath, runprops):
 	dfchain = np.concatenate((dfchain,np.array(grid_dx).reshape((grid_dx.size,1)) ), axis = 1)
 	dfchain = np.concatenate((dfchain,np.array(grid_dy).reshape((grid_dy.size,1)) ), axis = 1)    
 
-	# Filtering the samples
-	bool_arr = grid_llhoods > grid_llhoods.max() - runprops.get('sep_grid_adj')
+	# Filtering the separation grid
+	bool_arr = grid_llhoods > grid_llhoods.max() - runprops.get('sep_grid_adj')   
+	#dmag_best_llhood = grid_llhoods == grid_llhoods.max()
+	#best_dmag = grid_dmag[dmag_best_llhood]
+	#bool_dmag = grid_dmag == best_dmag  
     
+	# Apply the dmag prior
 	dmag_best_llhood = grid_llhoods == grid_llhoods.max()
 	best_dmag = grid_dmag[dmag_best_llhood]
-	bool_dmag = grid_dmag == best_dmag  
-	#bool_2 = llhoods > llhoods.max() - 100.0
-	#dmag_dif = np.abs(dmag[bool_2] - best_dmag)
-	#dmag_llhoods = 0 - dmag_dif
+	exp_dmag_mean = best_dmag
+	exp_dmag_stdev = 0.25 
+	print("grid size:", grid_llhoods.size)   
+	print("best dmag", best_dmag)     
+       
+	# mod_ln_likelihood(dx,dy) = ln_likelihood(dx,dy,dmag) + ((dmag - expected_dmag_mean)/expected_dmag_stdev)   
+	# For every 100 values, the y position changes, so each 100 represents going through each dmag and the llhood
+	# associated with that dmag value at that position.
+	grid_dmag_u = np.unique(grid_dmag)
+	print(len(grid_dmag_u))    
+	new_grid_llhoods = []
+	pt = 0
+	check1 = 0
+	check = 99  
+	for j in tqdm(range(int(len(grid_llhoods)/100))):
+		mod_llhoods = []
+		for i in range(len(grid_dmag_u)):
+			mod = grid_llhoods[pt] + ((grid_dmag[pt] - exp_dmag_mean)/exp_dmag_stdev)
+			mod_llhoods = np.append(mod_llhoods, mod)
+			#if pt == check1:
+				#print(grid_dmag[pt],grid_llhoods[pt],mod_llhoods[i])
+				#check1 += 100 
+				#print("passed check1", check1)                
+			#if pt == check:
+				#print(grid_dmag[pt],grid_llhoods[pt],mod_llhoods[i])
+				#check += 100
+			#if pt == (1440000-1):
+				#print(grid_dmag[pt],grid_llhoods[pt],mod_llhoods[i])
+			#if pt == (len(grid_llhoods)-1):
+				#print(grid_dmag[pt],grid_llhoods[pt],mod_llhoods[i])
+			pt += 1  
+			#print("skipped checks")                
+		best_llhood = mod_llhoods.max()
+		#print(best_llhood)
+		new_grid_llhoods = np.append(new_grid_llhoods, best_llhood)
+		#print(new_grid_llhoods)       
+	print("new grid size:", new_grid_llhoods.size)
+	#print(grid_dmag[-1],grid_llhoods[-1])
 
+	# Build arrays for the astromlist dataframe
 	ralist = []
 	for i in range(npsfs):
 		ralist = np.append(ralist,'ra' + str(i + 1))        
 	declist = []
 	for i in range(npsfs):
 		declist = np.append(declist,'dec' + str(i + 1))            
-	astromlist = np.append(ralist,declist)      
+	astromlist = np.append(ralist,declist)  
     
+	# Set up a boolean to truncate all other values to the new likelihoods size
+	bool_dmag = grid_dmag == grid_dmag[dmag_best_llhood] 
+	# The only values that actually matter here are dx and dy. The rest are modified because they have to be the 
+	# same size so that make_obsdf works, their values aren't necessarily correct.
 	map_output = pd.DataFrame(columns = astromlist, index = range(len(grid_dx[bool_dmag])))
 	map_output["dra(2-1)"] = grid_dra[bool_dmag]
 	map_output["ddec(2-1)"] = grid_ddec[bool_dmag]
@@ -206,18 +249,18 @@ def map_plots(sampler, grid, grid_llhoods, resultspath, runprops):
 	map_output["pa(2-1)"] = grid_pa[bool_dmag]    
 	map_output["dx(2-1)"] = grid_dx[bool_dmag]
 	map_output["dy(2-1)"] = grid_dy[bool_dmag]
-	#map_output["llhoods"] = llhoods[bool_arr]
 	print("DataFrame shape:",map_output.shape)
 	#print(map_output)
     
 	# Making plots
 	if (sampler.shape != np.zeros((1,1)).shape):    
-		likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultspath, runprops)
+		likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, new_grid_llhoods, resultspath, runprops)
         
-	likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, resultspath, runprops)
-	latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, runprops)
+	likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, new_grid_llhoods, resultspath, runprops)
+	latlon_map(dfchain, map_output, f, new_grid_llhoods, resultspath, runprops)
 
-def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultspath, runprops):
+def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, new_grid_llhoods, resultspath, runprops):
+	print("\nMaking the chain maps")
 	# Getting the stored chain
 	burnin = int(runprops.get('nburnin'))
 	clusterburn = int(runprops.get('clustering_burnin'))
@@ -236,7 +279,31 @@ def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultsp
 	pa = np.arctan2(ddec,dra)*57.2958
 	dx = flatchain[:,3].flatten() - flatchain[:,0].flatten() #x2 - x1
 	dy = flatchain[:,4].flatten() - flatchain[:,1].flatten() #y2 - y1
+
+	# Output the best dmag value    
+	dmag_best_llhood = llhoods == llhoods.max()
+	best_dmag = dmag[dmag_best_llhood]
+	print("chain best dmag:", best_dmag)
+	print("mean dmag:", np.mean(dmag))
     
+	# Plot the chain
+	plt.figure()
+	plt.scatter(dy, dx, c = llhoods, cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("dy")
+	plt.ylabel("dx")
+	plt.xlim([-29.0,29.0])
+	plt.ylim([-29.0,29.0])
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/chain_llhoods.png", dpi = 300)
+	plt.close()  
+    
+	# Save the chain data    
+	np.savetxt(resultspath + '/chain_dy.txt',dy)
+	np.savetxt(resultspath + '/chain_dx.txt',dx)
+	np.savetxt(resultspath + '/chain_llhoods.txt',llhoods)
+    
+	# Join the grid and chain values together for the separation plot
 	sep = np.append(grid_sep, sep)
 	dmag = np.append(grid_dmag, dmag)    
 	llhoods = np.append(grid_llhoods, llhoods)
@@ -255,7 +322,12 @@ def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, resultsp
 	plt.savefig("brightness_sep_both.png", dpi = 300)
 	plt.close()
 
-def likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, resultspath, runprops):   
+def likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, grid_dy, bool_dmag, new_grid_llhoods, resultspath, runprops):
+	# Save the grid data    
+	np.save(resultspath + '/mod_grid_dy.npy',grid_dy[bool_dmag])
+	np.save(resultspath + '/mod_grid_dx.npy',grid_dx[bool_dmag])
+	np.save(resultspath + '/mod_grid_llhoods.npy',new_grid_llhoods)
+    
 	# Make brightness separation plot
 	plt.figure()
 	plt.scatter(grid_sep[bool_arr], grid_dmag[bool_arr], c = grid_llhoods[bool_arr], cmap = "viridis", s = 5, alpha = 0.4)
@@ -267,29 +339,19 @@ def likelihood_map_grid(grid_sep, grid_dmag, grid_llhoods, bool_arr, grid_dx, gr
 	plt.savefig(resultspath + "/brightness_sep_grid.png", dpi = 300)
 	plt.close()
     
-	# Make dxdy_dmag.max-llhoods plot
+	# Make dmag modified plot
 	plt.figure()
-	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = new_grid_llhoods, cmap = "viridis", s = 5, alpha = 0.4)
 	plt.xlabel("dy")
 	plt.ylabel("dx")
+	plt.xlim([-29.0,29.0])
+	plt.ylim([-29.0,29.0])
 	color_bar = plt.colorbar()
 	color_bar.set_alpha(1)
 	plt.savefig(resultspath + "/dx_dy_llhoods.png", dpi = 300)
-	plt.close()  
+	plt.close()   
     
-	# Make dxdy_dmag.max-llhoods_filtered plot
-	plt.figure()
-	plt.scatter(grid_dy[bool_dmag], grid_dx[bool_dmag], c = grid_llhoods[bool_dmag], cmap = "viridis", vmin = grid_llhoods[bool_dmag].max() - runprops.get('llhood_map_adj'), vmax = grid_llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
-	plt.xlabel("dy")
-	plt.ylabel("dx")
-	color_bar = plt.colorbar()
-	color_bar.set_alpha(1)
-	plt.savefig(resultspath + "/dx_dy_llhoods_adjusted.png", dpi = 300)
-	plt.close()     
-
-	print("llhood.max:", grid_llhoods[bool_dmag].max(), "llhoods.min:",grid_llhoods[bool_dmag].min())
-    
-def latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, runprops):
+def latlon_map(dfchain, map_output, f, grid_llhoods, resultspath, runprops):
 	llhoods = grid_llhoods
 	npsfs = 2
 
@@ -305,39 +367,21 @@ def latlon_map(dfchain, map_output, f, bool_dmag, grid_llhoods, resultspath, run
     
 	dlat = forsigsdf['dlat1']
 	dlong = forsigsdf['dlong1']
-        
-	# Make latlon_dmag plot
-	##plt.figure()
-	##plt.scatter(dlong, dlat, c = dmag_ll, cmap = "viridis", s = 5, alpha = 0.4)
-	##plt.xlabel("dlong (arcsec)")
-	##plt.ylabel("dlat (arcsec)")
-	#plt.gca().invert_xaxis()
-	#plt.xlim([0,60])
-	#plt.ylim([0,60])
-	##color_bar = plt.colorbar()
-	##color_bar.set_alpha(1)
-	##plt.savefig("dlat_dlong.png", dpi = 300)
-	##plt.close()
-    
+
+	# Save the grid data    
+	np.save(resultspath + '/mod_grid_dlatx.npy',dlat)
+	np.save(resultspath + '/mod_grid_dlongy.npy',dlong)
+	np.save(resultspath + '/mod_grid_llhoods.npy',llhoods)
+
 	# Make latlon_dmag plot
 	plt.figure()
-	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", s = 5, alpha = 0.4)
+	plt.scatter(dlong, dlat, c = llhoods, cmap = "viridis", s = 5, alpha = 0.4)
 	plt.xlabel("dlong")
 	plt.ylabel("dlat")
 	color_bar = plt.colorbar()
 	color_bar.set_alpha(1)
 	plt.savefig(resultspath + "/dlat_dlong_llhoods.png", dpi = 300)
 	plt.close()  
-    
-	# Make latlon_dmag_adjusted plot
-	plt.figure()
-	plt.scatter(dlong, dlat, c = llhoods[bool_dmag], cmap = "viridis", vmin = llhoods[bool_dmag].max() - runprops.get('llhood_map_adj'), vmax = llhoods[bool_dmag].max(), s = 5, alpha = 0.4)
-	plt.xlabel("dlong")
-	plt.ylabel("dlat")
-	color_bar = plt.colorbar()
-	color_bar.set_alpha(1)
-	plt.savefig(resultspath + "/dlat_dlong_llhoods_adjusted.png", dpi = 300)
-	plt.close() 
 
     
 def auto_window(taus, c):

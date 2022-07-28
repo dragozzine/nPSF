@@ -115,7 +115,16 @@ y = runprops.get("stamp_y")
 size = runprops.get("stamp_size")
 
 f = runprops.get('image_path') + runprops.get('input_image')
-imageraw, gain = getimage_hst(f)
+imageraw, filter, nchip, bunits = getimage_hst(f)
+
+if bunits == 'ELECTRONS':
+    print("bunits:", bunits)
+else:
+    print("Image header units must be in electrons for accurate results. Quitting.")
+    sys.exit()
+
+print("filter:", filter)
+print("CCD chip:", nchip)
 
 # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
 # This may also be irrelevant if we move to simultaneous pair fitting
@@ -205,9 +214,9 @@ xpos = runprops.get("xpos")
 ypos = runprops.get("ypos")
 size_psf = runprops.get("psf_size")
 sample_factor = runprops.get("sample_factor")
-nchip = runprops.get("chip")
+#nchip = runprops.get("chip")
 ndet = runprops.get("det_int")
-filter = runprops.get("filter")
+#filter = runprops.get("filter")
 numpsfs = focuses.size
 
 # Making TinyTim PSFs (this is skipped if all the PSFs have previously been made)

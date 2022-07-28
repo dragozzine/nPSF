@@ -37,15 +37,20 @@ print(fullpath)
 runprops["input_image"] = fullpath
 runprops["image_name"] = image[:-5]
 runprops["npsfs"] = 1
-    
-backend = emcee.backends.HDFBackend('chain.h5')
+
+# Fake the backend parameter if no chain to load
+if os.path.isfile('chain.h5') == True:
+    backend = emcee.backends.HDFBackend('chain.h5')
+else:
+    backend = np.zeros((1,1))
+
 name_dict = runprops.get("names_dict")
 objectnames = []
 for i in name_dict.values():
     objectnames.append(i)
 print(objectnames)
 
-resultspath = "../" + runprops["image_name"]
+resultspath = "../" + runprops["image_name"] + "_" + runprops["map_identifier"]
 
 grid = np.load('grid.npy')
 grid_llhoods = np.load('llhoods.npy')

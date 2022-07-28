@@ -84,15 +84,15 @@ def getimage_hst(filename):
 
 	# Getting data out of object
 	psf = fitsfile[1].data
-	# Getting gain out of object    
-	gain = fitsfile[0].header['CCDGAIN']
-	# Getting PHOTFLAM out of object    
-	photflam = fitsfile[0].header['PHOTFLAM']    
+	# Getting filter out of object    
+	filter = fitsfile[0].header['Filter']
 	# Getting exposure time out of object    
-	exptime = fitsfile[0].header['EXPTIME']
-
+	nchip = fitsfile[1].header['CCDCHIP']
+	# Getting image units out of object    
+	bunits = fitsfile[1].header['BUNIT']
+    
 	# Normalizing the psf (remove if TT psfs come normalized) and returning the HST psf
-	return psf, gain#, photflam, exptime
+	return psf, filter, nchip, bunits
 
 
 

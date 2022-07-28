@@ -52,7 +52,16 @@ def make_map(psf1params, resultspath, runprops):
     size = runprops.get("stamp_size")
 
     f = runprops.get('input_image')
-    imageraw = getimage_hst(f)
+    imageraw, filter, nchip, bunits = getimage_hst(f)
+
+    if bunits == 'ELECTRONS':
+        print("bunits:", bunits)
+    else:
+        print("Image header units must be in electrons for accurate results. Quitting.")
+        sys.exit()
+
+    print("filter:", filter)
+    print("CCD chip:", nchip)
  
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
@@ -126,9 +135,9 @@ def make_map(psf1params, resultspath, runprops):
     ypos = runprops.get("ypos")
     size_psf = runprops.get("psf_size")
     sample_factor = runprops.get("sample_factor")
-    nchip = runprops.get("chip")
+    #nchip = runprops.get("chip")
     ndet = runprops.get("det_int")
-    filter = runprops.get("filter")
+    #filter = runprops.get("filter")
 
     focus = psf1params[-1]
     filename = "modelpsfs/wfc3psf_" + str(ndet) + "_" + str(nchip) + "_" + filter + "_" + str(xpos) + "_" + str(ypos) + "_" + str(round(focus,1)) + "_" + str(size_psf) + "_" + str(sample_factor) + ".fits"
