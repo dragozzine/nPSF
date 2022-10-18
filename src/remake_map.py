@@ -21,7 +21,7 @@ class ReadJson(object):
         return self.data
 
     
-# Ensure that its being run from the right place
+# Ensure that its being run from the right place, i.e. a results directory
 cwd = os.getcwd()
 if "results" in cwd:
     runprops = ReadJson("runprops.txt").outProps()
@@ -44,14 +44,17 @@ if os.path.isfile('chain.h5') == True:
 else:
     backend = np.zeros((1,1))
 
+# Import the names of the objects
 name_dict = runprops.get("names_dict")
 objectnames = []
 for i in name_dict.values():
     objectnames.append(i)
 print(objectnames)
 
+# Set the resultspath
 resultspath = "../" + runprops["image_name"] + "_" + runprops["map_identifier"]
 
+# Load the saved grid and likelihoods
 grid = np.load('grid.npy')
 grid_llhoods = np.load('llhoods.npy')
 
@@ -60,5 +63,3 @@ from analysis import *
 map_plots(backend, grid, grid_llhoods, resultspath, runprops)
     
 print("Done")
-
-    

@@ -21,8 +21,8 @@
 	"det_int": 22,				# Specifies the camera being used
 	"xpos": 267,				# x position and y position, give the center of the part of the camera we use, e.g. if (256,256) is the center, we use 512x512 (x and y in ds9 is flipped from x and y in the code) (xpos and ypos should match the center of the object (except still flipped))
 	"ypos": 248,
-	"fmin": -5.0,				# Fmin and fmax is the maximum extent that it should check focus values (cuz the focus of HST changes over time due to expansion/contraction from heat).
-	"fmax": 5.0,
+	"fmin": -8.0,				# Fmin and fmax is the maximum extent that it should check focus values (cuz the focus of HST changes over time due to expansion/contraction from heat).
+	"fmax": 8.0,
 	"fspace": 0.1,				# Leave alone, not worth experimenting with
 	"sample_factor": 8,			# Must be integer between 1-10. This asks to create the PSF in a higher resolution than the camera actually has (which makes it easier to do stuff with the PSF). Sample factor of 8 gives 64 sub-pixels within each pixel. Factor of 8 seems to work well.
 	"psf_size": 2.0,			# don’t change (tells tiny tim how big to make the psf)

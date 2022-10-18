@@ -1,3 +1,11 @@
+#	latlon_transform.py
+#
+#	Converts RA and DEC values to latitude and longitude coordinates for a given object and its moons. 
+#
+#	Code body provided by Dallin Spencer. Updates to perform needed functions completed by William Giforos
+#	Summer of 2022
+
+
 import numpy as np
 import pandas as pd
 from astroquery.jplhorizons import Horizons
@@ -36,7 +44,8 @@ import gc
           objectName - The name of the object being observed (needed for the Horizons function)
    
     OUTPUTS:
-          None. Just makes plots currently.
+          forsigsDF - returns a dataframe to analysis.py for inclusion in a sigsdf file
+          _obs_df.csv - saves an obs_df file for use in Multimoon
 '''
 
 
@@ -213,5 +222,3 @@ def convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, s
     
     return forsigsDF
     
-
-   

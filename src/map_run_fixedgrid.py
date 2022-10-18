@@ -1,9 +1,9 @@
 #
-# map_run.py
+# multi_run.py
 #
-# Takes an HST image in a data directory and creates a fixed grid likelihood map
+# Takes a folder of HST images and runs npsf on them
 #
-# Benjamin Proudfoot, updated by William Giforos Summer 2022
+# Benjamin Proudfoot
 # 01/24/22
 #
 
@@ -62,64 +62,51 @@ def make_map(psf1params, resultspath, runprops):
 
     print("filter:", filter)
     print("CCD chip:", nchip)
- 
+
     # Clean cosmic rays from image (maybe this can be removed when guesses are good enough?)
     # This may also be irrelevant if we move to simultaneous pair fitting
     import ccdproc
-    if runprops.get('cr_clean')==True:
-        print("cr_clean set to True")
-        cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
-        image = np.array(cr_cleaned)[x:x+size,y:y+size]
+    cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim"), gain_apply = False)
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
     
-        plt.figure()
-        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
-        plt.colorbar()
-        plt.savefig(resultspath + "/cleanedimage.png")
-        plt.figure()
-        plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-        plt.colorbar()
-        plt.savefig(resultspath + "/crmask.png")
-        plt.close("all")
+    plt.figure()
+    plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.savefig(resultspath + "/cleanedimage.png")
+    plt.figure()
+    plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+    plt.colorbar()
+    plt.savefig(resultspath + "/crmask.png")
+    plt.close("all")
 
-        # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
-        reset = False
-        while True:
-            crredo = False
-            if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
-                crredo = True
-            if crredo:
-                cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
-                plt.figure()
-                plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
-                plt.colorbar()
-                plt.savefig(resultspath + "/cleanedimage.png")
-                plt.figure()
-                plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
-                plt.colorbar()
-                plt.savefig(resultspath + "/crmask.png")
-                plt.close("all")
+    # Make sure that the CR algorithm hasn't marked the target as a cosmic ray!
+    reset = False
+    while True:
+        crredo = False
+        if crmask[x:x+size,y:y+size][int(psf1params[0]),int(psf1params[1])]:
+            crredo = True
+        if crredo:
+            cr_cleaned, crmask = ccdproc.cosmicray_lacosmic(imageraw, sigclip=5.0, objlim = runprops.get("cr_objlim") + 1.5, gain_apply = False)
+            plt.figure()
+            plt.imshow(cr_cleaned, cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.savefig(resultspath + "/cleanedimage.png")
+            plt.figure()
+            plt.imshow(crmask[x:x+size,y:y+size], cmap = "hot", interpolation = "nearest", origin = "lower")
+            plt.colorbar()
+            plt.savefig(resultspath + "/crmask.png")
+            plt.close("all")
             
-                if reset:
-                    print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
-                    print("Consider increasing the objlim in runprops.")
-                    #sys.exit()
-                    return -1, resultspath
-                reset = True
-            else:
-                break
-        image = np.array(cr_cleaned)[x:x+size,y:y+size]
-        
-    # Print out image that hasn't been cleaned
-    else:
-        print("cr_clean set to False")
-        image = imageraw[x:x+size,y:y+size]
+            if reset:
+                print("CR rejection algorithm is flagging your target as a CR. Aborting run.") 
+                print("Consider increasing the objlim in runprops.")
+                #sys.exit()
+                return -1, resultspath
+            reset = True
+        else:
+            break
+    image = np.array(cr_cleaned)[x:x+size,y:y+size]
     
-        plt.figure()
-        plt.imshow(image, cmap = "hot", interpolation = "nearest", origin = "lower")
-        plt.colorbar()
-        plt.savefig(resultspath + "/cleanedimage.png")
-        plt.close("all")
-      
     # Ensure there are no negative pixels. Add constant offset, which will be corrected in model images.
     if np.nanmin(image) < 0:
         image = image - np.floor(np.nanmin(image)) + 1.0
@@ -135,9 +122,9 @@ def make_map(psf1params, resultspath, runprops):
     ypos = runprops.get("ypos")
     size_psf = runprops.get("psf_size")
     sample_factor = runprops.get("sample_factor")
-    #nchip = runprops.get("chip")
+    nchip = runprops.get("chip")
     ndet = runprops.get("det_int")
-    #filter = runprops.get("filter")
+    filter = runprops.get("filter")
 
     focus = psf1params[-1]
     filename = "modelpsfs/wfc3psf_" + str(ndet) + "_" + str(nchip) + "_" + filter + "_" + str(xpos) + "_" + str(ypos) + "_" + str(round(focus,1)) + "_" + str(size_psf) + "_" + str(sample_factor) + ".fits"
@@ -162,8 +149,30 @@ def make_map(psf1params, resultspath, runprops):
 
     # x and y grids have the 2nd psf placed at the center of the pixel. Not too accurate, but remember, we're looking
     # for relatively rough upper limits
-    xgrid = np.linspace(3.0, size - 3.0, num = int(nx))
-    ygrid = np.linspace(3.0, size - 3.0, num = int(ny))
+    #xgrid = np.linspace(3.0, size - 3.0, num = int(nx))
+    xgrid = []
+    pt = 3.0
+    dx = (((size-3.0)-3.0) / int(nx))
+    print(int(nx))
+    print(dx)
+    while pt <= (size - 3.0):
+        xgrid.append(float("{:.3f}".format(pt)))
+        pt += dx
+    print(xgrid)
+    print(len(xgrid))
+    
+    #ygrid = np.linspace(3.0, size - 3.0, num = int(ny))
+    ygrid = []
+    pt = 3.0
+    dy = (((size-3.0)-3.0) / int(ny))
+    print(int(ny))
+    print(dy)
+    while pt <= (size - 3.0):
+        ygrid.append(float("{:.3f}".format(pt)))
+        pt += dy
+    print(ygrid)
+    print(len(ygrid))
+    
     hgrid = np.logspace(np.log10(hmin), np.log10(psf1params[2]), num = int(nh))
 
     # Set up arrays holding the likelihood map. These are made to look exactly like the flatchain from emcee
@@ -193,7 +202,7 @@ def make_map(psf1params, resultspath, runprops):
     return grid, llhoods
 
 
-# Machinery for running from map_run.py
+# Machinery for running from map_run
 import os
 import glob
 cwd = os.getcwd()
@@ -208,7 +217,7 @@ else:
 
 # Run nPSF for 1 psf
 #bestfit, resultspath = npsf_run(runprops)
-#np.array([x1, y1, h1, focus]) from nPSF run results (primary object)
+#np.array([x1, y1, h1, focus]) from nPSF run results, (yes, these are from the primary object)
 params_df = pd.read_csv(runprops.get("starting_guess"),sep=',',index_col=0)
 bestfit = params_df.iloc[0,[0,1,2,-1]].to_numpy()
 #print(bestfit)
@@ -262,3 +271,4 @@ sampler = np.zeros((1,1))
 # Make plots
 #likelihood_map(grid, llhoods, resultspath, runprops)
 map_plots(sampler, grid, grid_llhoods, resultspath, runprops)
+

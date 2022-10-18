@@ -1,7 +1,7 @@
 #
-# multi_run.py
+# multi_map.py
 #
-# Takes a folder of HST images and runs npsf on them
+# Takes a folder of HST images and creates a liklihood map for each one
 #
 # Benjamin Proudfoot
 # 01/24/22

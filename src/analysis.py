@@ -18,6 +18,7 @@ import emcee
 import astropy.io
 import astropy.wcs
 from likelihood import log_likelihood
+from likelihood import generate_bestfit_residual
 import pandas as pd
 import os.path
 from latlon_transform import convert_to_primary_centric
@@ -149,6 +150,18 @@ def plot_best_fit(sampler, image, psfs, focuses, runprops):
 	log_likelihood(params, image, psfs, focuses, runprops, plotit = True)
 	return params
 
+def plot_comparison(sampler, image, psfs, focuses, runprops):
+	# Get the best parameter set from the chain
+	burnin = int(runprops.get('nburnin'))
+	clusterburn = int(runprops.get('clustering_burnin'))  
+	llhoods = sampler.get_log_prob(discard=int(burnin+clusterburn), flat = True)
+	flatchain = sampler.get_chain(discard=int(burnin+clusterburn), flat = True)
+	ind = np.argmax(llhoods)
+	params = flatchain[ind,:].flatten()
+
+	# Run likelihhod function
+	psfimage, residuals, xcens, ycens = generate_bestfit_residual(params, image, psfs, focuses, runprops, plotit = True)
+	return psfimage, residuals, xcens, ycens
 
 def map_plots(sampler, grid, grid_llhoods, resultspath, runprops):
 	# Load in info about run and open the image's WCS
@@ -281,10 +294,29 @@ def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, new_grid
 	dy = flatchain[:,4].flatten() - flatchain[:,1].flatten() #y2 - y1
 
 	# Output the best dmag value    
-	dmag_best_llhood = llhoods == llhoods.max()
-	best_dmag = dmag[dmag_best_llhood]
-	print("chain best dmag:", best_dmag)
+	chain_dmag_best_llhood = llhoods == llhoods.max()
+	chain_best_dmag = dmag[chain_dmag_best_llhood]
+	print("chain best dmag:", chain_best_dmag)
 	print("mean dmag:", np.mean(dmag))
+        
+	# Apply the grid dmag prior
+	dmag_best_llhood = grid_llhoods == grid_llhoods.max()
+	best_dmag = grid_dmag[dmag_best_llhood]
+	exp_dmag_mean = best_dmag
+	exp_dmag_stdev = 0.25 
+	print("grid best dmag", best_dmag)     
+
+	#print(dmag[pt],llhoods[pt],mod_llhoods[i])
+	# mod_ln_likelihood(dx,dy) = ln_likelihood(dx,dy,dmag) + ((dmag - expected_dmag_mean)/expected_dmag_stdev)   
+	mod_llhoods = []    
+	for i in tqdm(range(int(len(llhoods)))):
+		mod = llhoods[i] + ((dmag[i] - exp_dmag_mean)/exp_dmag_stdev)
+		mod_llhoods = np.append(mod_llhoods, mod)                
+		if i == 0:
+			print(dmag[i],llhoods[i],mod_llhoods[i])
+		if i == (len(llhoods)-1):
+			print(dmag[i],llhoods[i],mod_llhoods[i])
+	print(dmag[-1],llhoods[-1])
     
 	# Plot the chain
 	plt.figure()
@@ -297,12 +329,29 @@ def likelihood_map_chain(w, sampler, grid_llhoods, grid_sep, grid_dmag, new_grid
 	color_bar.set_alpha(1)
 	plt.savefig(resultspath + "/chain_llhoods.png", dpi = 300)
 	plt.close()  
+                  
+	# Plot the chain
+	plt.figure()
+	plt.scatter(dy, dx, c = mod_llhoods, cmap = "viridis", s = 5, alpha = 0.4)
+	plt.xlabel("dy")
+	plt.ylabel("dx")
+	plt.xlim([-29.0,29.0])
+	plt.ylim([-29.0,29.0])
+	color_bar = plt.colorbar()
+	color_bar.set_alpha(1)
+	plt.savefig(resultspath + "/chain_mod_llhoods.png", dpi = 300)
+	plt.close()  
     
+	np.save(resultspath + '/chain_dy.npy',dy)
+	np.save(resultspath + '/chain_dx.npy',dx)
+	np.save(resultspath + '/chain_dmags.npy',dmag)    
+	np.save(resultspath + '/chain_llhoods.npy',mod_llhoods)
+	"""        
 	# Save the chain data    
 	np.savetxt(resultspath + '/chain_dy.txt',dy)
 	np.savetxt(resultspath + '/chain_dx.txt',dx)
-	np.savetxt(resultspath + '/chain_llhoods.txt',llhoods)
-    
+	np.savetxt(resultspath + '/chain_llhoods.txt',mod_llhoods)
+	"""    
 	# Join the grid and chain values together for the separation plot
 	sep = np.append(grid_sep, sep)
 	dmag = np.append(grid_dmag, dmag)    
