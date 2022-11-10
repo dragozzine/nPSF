@@ -79,17 +79,23 @@ def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
     skycounts = runprops.get("med_noise")
 
     # Choose appropriate PSF based on the focus value
-    rfocus = round(focus,1)
-    psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
-    psf = psfs[:,:,psfindex]
-    #print(rfocus, psfindex)
-    #print(focuses)
-
-    #rng = np.random.default_rng(42)
-
-    psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
+    if focuses.all() != 0:
+        rfocus = round(focus,1)
+        psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
+        psf = psfs[:,:,psfindex]
+        
+        psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
 				xcens = xcens, ycens = ycens, heights = heights,
 				psfscale = runprops.get("sample_factor"), runprops = runprops)
+    else:
+        # upload the single input psf (empirical psf)
+        psf = psfs[:,:,0]
+        # insert the psf without convolving the charge diffusion kernel
+        psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
+				xcens = xcens, ycens = ycens, heights = heights,
+				psfscale = runprops.get("sample_factor"), runprops = None)
+
+    #rng = np.random.default_rng(42)
 
     loglike=0
     likearray = scipy.stats.poisson.logpmf(np.rint(psfimage),np.rint(image))
@@ -198,13 +204,21 @@ def generate_bestfit_residual(parameters, image, psfs, focuses, runprops, plotit
     skycounts = runprops.get("med_noise")
 
     # Choose appropriate PSF based on the focus value
-    rfocus = round(focus,1)
-    psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
-    psf = psfs[:,:,psfindex]
+    if focuses.all() != 0:
+        rfocus = round(focus,1)
+        psfindex = np.where(np.isclose(focuses,rfocus))[0][0]
+        psf = psfs[:,:,psfindex]
 
-    psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
+        psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
 				xcens = xcens, ycens = ycens, heights = heights,
 				psfscale = runprops.get("sample_factor"), runprops = runprops)
+    else:
+        # upload the single input psf (empirical psf)
+        psf = psfs[:,:,0]
+        # insert the psf without convolving the charge diffusion kernel
+        psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
+				xcens = xcens, ycens = ycens, heights = heights,
+				psfscale = runprops.get("sample_factor"), runprops = None)
 
     residuals = image - psfimage
     

@@ -88,15 +88,16 @@ resultspath = "../../results/"+runprops.get('image_path')[8:]+date+"_"+runprops.
 if not os.path.exists(resultspath):
     os.makedirs(resultspath)
 
+# Copy the runprops and startguess into the newly minted results folder
 shutil.copy("runprops.txt", resultspath + "/runprops.txt")
 shutil.copy(runprops.get("starting_guess"), resultspath + "/startguess.csv")
 
 # Get initial guess (with init_guess.py)
-# This uses test data from guess_test.py
 params_df = pd.read_csv(runprops.get("starting_guess"),sep=',',index_col=0)
 
 p0_df = init_guess(params_df, nwalkers)
 paramnames = params_df.columns.tolist()
+# p0 is the array of initial guesses
 p0, change_dict = params_to_fitarray(p0_df)
 
 # Get ndim
@@ -120,7 +121,8 @@ imageraw, filter, nchip, bunits = getimage_hst(f)
 if bunits == 'ELECTRONS':
     print("bunits:", bunits)
 else:
-    print("Image header units must be in electrons for accurate results. Quitting.")
+    print("bunits:", bunits)
+    print("Image header units must be in electrons for accurate results (gain issues). Quitting.")
     sys.exit()
 
 print("filter:", filter)
@@ -263,6 +265,7 @@ for i in range(nwalkers):
         #print(reset, llhood, i, p0[i,:])
         reset += 1
         if reset > 10000:
+            print("Could not fix bad initial guesses / bad walkers")
             sys.exit()
 
 # Setting up emcee sampler object

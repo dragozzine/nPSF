@@ -86,7 +86,7 @@ def getimage_hst(filename):
 	psf = fitsfile[1].data
 	# Getting filter out of object    
 	filter = fitsfile[0].header['Filter']
-	# Getting exposure time out of object    
+	# Getting CCDchip number out of object    
 	nchip = fitsfile[1].header['CCDCHIP']
 	# Getting image units out of object    
 	bunits = fitsfile[1].header['BUNIT']
