@@ -2,9 +2,10 @@
 #	m-a_sep_TNO.py
 #
 #	Makes a 2d histogram of the mass semi-major axis separation distribution given a list of J2 vals
-#	with data inputspecifically from Borasisi. This could in principle be replaced with other J2 values
+#	with data input specifically from Borasisi. This could in principle be replaced with other J2 values
+#	Additional changes to indicate hierarchical triple detectability and for input of any TNO system by William Giforos, 09/2022
 #
-#	Benjamin Proudfoot -> additional changes to indicate hierarchical triple detectability and for input of any TNO system by William Giforos, 09/2022
+#	Benjamin Proudfoot 
 #	06/13/22
 #
 

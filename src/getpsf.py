@@ -77,7 +77,10 @@ def getimage_hst(filename):
 		filename: a string specifying the location of the image
 
 	Outputs:
-		an array/image of anHST image
+		psf: an array/image of an HST image
+		filter: filter of an HST image
+		nchip: CCD chip number of an HST image
+		bunits: image units of an HST image       
 	"""
 	# Loading in the .fits object
 	fitsfile = astropy.io.fits.open(filename)
