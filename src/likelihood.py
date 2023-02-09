@@ -88,9 +88,9 @@ def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
 				xcens = xcens, ycens = ycens, heights = heights,
 				psfscale = runprops.get("sample_factor"), runprops = runprops)
     else:
-        # upload the single input psf (empirical psf)
+        # upload the single input psf (empirical psf), no focus values used
         psf = psfs[:,:,0]
-        # insert the psf without convolving the charge diffusion kernel
+        # insert the psf without convolving the charge diffusion kernel by setting runprops = None
         psfimage = insertpsf_n(image = np.ones((xsize,ysize))*skycounts, psf = psf,
 				xcens = xcens, ycens = ycens, heights = heights,
 				psfscale = runprops.get("sample_factor"), runprops = None)

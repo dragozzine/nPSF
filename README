@@ -1,13 +1,17 @@
 \README for nPSF
 Physics 529 Class Project Winter 2020
-Darin Ragozzine and Benjamin Proudfoot
+Benjamin Proudfoot, William Giforos, Darin Ragozzine
 Students: Ian Clark, Jarrod Hansen, Jake Jensen, Maya Laker, Rochelle Steele, maybe others
 
 nPSF is designed to be a code that returns a likelihood map for the 
 relative positions of multiple (n) PSFs in an image. It's goal is to 
 provide likelihood information for relative astrometry, e.g., KBO moons.
 
-nPSF relies on installation of TinyTim to model HST PSFs. To install enter the tinytim-7.5 
+To install nPSF:
+
+We recommend that you use a virtual environment to run nPSF. Once you have a virtual environment running, all package requirements are contained in `requirements.txt`. Install all required packages with `pip install -r requirements.txt`.
+
+nPSF relies on installation of TinyTim to model HST PSFs. To install, enter the tinytim-7.5 
 directory. Then use the following command (if on linux):
 
 make linux

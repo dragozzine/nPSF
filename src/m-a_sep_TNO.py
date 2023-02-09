@@ -121,7 +121,7 @@ m2m1 = np.linspace(0,1,num = 1000) #x-axis
 sma = np.linspace(1,y_max,num = 1000) #y-axis
 grid = np.empty((1000,1000))
 for i,mr in enumerate(m2m1):
-	grid[i,:] = 0.5*mr*(sma**2)
+	grid[i,:] = 0.5*(mr/(1+mr)**2)*(sma**2)
 j2r2s = grid.transpose()
 
 # Load in fonts (will not work without my specific font set up)

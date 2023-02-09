@@ -29,7 +29,7 @@ class ReadJson(object):
     def outProps(self):
         return self.data
     
-#Kudos to Joe Kington for writing the subclass (MidpointNormalize), and to Rutger Kassies for pointing out the answer. https://stackoverflow.com/questions/57180317/making-sure-0-gets-white-in-a-rdbu-colorbar
+#Credit to Joe Kington for writing the subclass (MidpointNormalize), and to Rutger Kassies for pointing out the answer. https://stackoverflow.com/questions/57180317/making-sure-0-gets-white-in-a-rdbu-colorbar
 class MidpointNormalize(mpl.colors.Normalize):
     ## class from the mpl docs:
     # https://matplotlib.org/users/colormapnorms.html
