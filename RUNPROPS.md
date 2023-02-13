@@ -3,10 +3,10 @@ Description of the different input parameters used in runprops.txt files
 
 ## Initialization properties:
 
-"input_image": ,
+"input_image": "idsj03wgq_flc.fits",
     # Insert the name of your _flc.fits file to run nPSf on
 
-"image_path": ,
+"image_path": "../data/2013_FY27/",
     # Here you want the path from src to your image file, i.e. "../data/2013_FY27/"
     
 "starting_guess": "startguess.csv",
