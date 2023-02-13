@@ -107,7 +107,8 @@ startguess.csv: a copy of the `startguess.csv` file used for this run.
 1) Follow the steps in nPSF's README to install TinyTim. Do this in your Jupyterhub terminal. 
 
     Virtual Environments for beginners: Different software requires different versions of the same packages. The nice thing about a virtual environment is that you can have different environments with the same software packages installed as different versions, so instead of having to reinstall a package everytime you want to use a different software, you can instead just execute a command and you are in the correct environment to use the desired software. 
-    To install your environment for nPSF, you will want to go to your user home directory (e.g. mine is `wgiforos@Haumea:~$`) and type the command 
+    To install your environment for nPSF, you will want to go to your user home directory (e.g. mine is `wgiforos@Haumea:~$`) and type the command ...
+    
 For additional info on virtual environments, see: `https://docs.python.org/3/library/venv.html`. 
 
 You can find your .bashrc in your user base directory by typing `ls -a` and pressing enter. 
