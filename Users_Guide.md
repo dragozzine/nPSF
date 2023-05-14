@@ -42,60 +42,94 @@ The first time nPSF is run from a data directory, a new directory will be automa
 
 Convergence Plots:
 
-    walkers_pngs: a folder containing individual files of each parameter's walk
+    walkers_pngs: A folder containing individual files of each parameter's walk.
 
-    walkers.pdf: a single pdf of each parameter's walk over the number of steps taken. 
+    walkers.pdf: A single pdf of each parameter's walk over the number of steps taken. 
 
-    walkers_full.pdf: a single pdf of each parameter's walk over the combined burnin, clustering, and number of steps taken.
+    walkers_full.pdf: A single pdf of each parameter's walk over the combined burnin, clustering, and number of steps taken.
 
 
 Image PNGs: 
 
-    bestfit.png: recreates an image of the psfs using the best fit values found during the nPSF run.
+    bestfit.png: Recreates an image of the psfs using the best fit values found during the nPSF run.
 
     cleanedimage.png: An image of the psfs after it has been cleaned of cosmic rays. The blue dots represent the starting guess positions of this specific nPSF run. 
 
-    compare_plots.png:
+    Work in progress, only appear if you run 3plot_compare.py (trying to get better residuals results):
+        compare_plots.png:
 
-    compare_plots_normalized.png:
+        compare_plots_normalized.png:
 
-    compare_plots_zoomed.png:
+        compare_plots_zoomed.png:
+    
+    crmask.png: The image of the mask that cleans the cosmic rays out of your image to give you the cleanedimage.png.
+    
+    llhood.png: Ask Ben or Ragozzine
+    
+    residuals.png: Shows the difference between the real data psf image and the fitted psf image. 
+    
+    trimmedpsf.png: Unique to empirical psf runs, this shows an image that has been trimmed to negate artifacts in the supplied empirical psf according to the additional parameters "emp_size","psf_x", and "psf_y" included in the empirical settings of the runprops. 
+
+
+Analysis Plots:
+
+    bright_sep_lim.pdf: Not currently functional, needs to be fixed.
+    
+    corner.pdf: The corner plot shows all the one and two dimensional projections of the posterior probability distributions of your parameters. This is useful because it quickly demonstrates all of the covariances between parameters.
+
+    cornerderived.pdf: A corner plot that includes the additional derived parameters. 
+    
+    likelihoods.pdf: Plots the Log(likelihood) vs. each parameter of the walk and each derived parameter. The plots to the above and right of the main plot are both histograms that you should want to look as gaussian as possible. Each color represents a different walker. The highest point on the plot represents the best fit value of that parameter. A well explored run will be shown in this plot as a smooth-ish mountain/hill with a good mix of colors (though a good run has a natural green distribution among the other colors).
 
 
 Information Files: 
 
     ..._obs_df.csv: Contains the latitude and longitude positions of the primary object and its secondaries. Purposed to be used in Multimoon.
 
-    sigsdf.csv: contains the posterior values of the run as well as valuable calculated information. 
+    sigsdf.csv: Contains the posterior values of the run as well as valuable calculated information. 
+    
         Posterior values:
+        
+            x: Positional pixel parameter in the x-direction.
             
+            y: Positional pixel parameter in the y-direction.
+            
+            h: Height or brightness of the psf.
+            
+            f: Focus of the HST camera. This is always changing, so we include it in our parameters to be solved for.
+            
+            dra: Derived difference between the RA of the TNOs.
+            
+            ddec: Derived difference between the declination of the TNOs.
+            
+            dmag: Derived difference between the brightness magnitude of the TNOs.
+            
+            sep: Derived separation distance between the TNOs in x and y pixel coordinates.
+            
+            pa: Position angle, the direction in which one object lies relative to another on the celestial sphere, measured in degrees from north in an easterly direction.
+            
+            dx: Difference between the TNO x-values.
+            
+            dy: Difference between the TNO y-values.
+            
+            lat: Latitude of the primary TNO.
+            
+            long: Longitude of the primary TNO.
+            
+            dlat: Difference between the TNO latitudes.
+            
+            dlong: Difference between the TNO longitudes.
+        
+        Many of these values will be labeled with either a 1, 2, or 3 to indicate the object in question. For parameters calculating the difference between objects, a 2psf run will yield values with a 1 and nothing more, such as dra1. For 3psf runs and higher, the difference between the primary and secondary is labeled dra2, the difference between primary and tertiary is dra3, etc.
 
+Additional Files:
 
-chain.h5: Contains all values found during the nPSF run.
+    chain.h5: Contains all values found during the nPSF run. Can't be opened directly, but is accessible through python.
 
+    runprops.txt: A copy of the `runprops.txt` file used for this run.
 
-bright_sep_lim.pdf:
-
-corner.pdf:
-
-cornerderived.pdf:
-
-crmask.png:
-
-likelihoods.pdf:
-
-llhood.png:
-
-residuals.png:
-
-runprops.txt: a copy of the `runprops.txt` file used for this run.
-
-
-
-startguess.csv: a copy of the `startguess.csv` file used for this run.
-
-
-    trimmedpsf.png:
+    startguess.csv: A copy of the `startguess.csv` file used for this run.
+    
 
 ### Additional Notes
 
@@ -107,13 +141,13 @@ startguess.csv: a copy of the `startguess.csv` file used for this run.
 1) Follow the steps in nPSF's README to install TinyTim. Do this in your Jupyterhub terminal. 
 
     Virtual Environments for beginners: Different software requires different versions of the same packages. The nice thing about a virtual environment is that you can have different environments with the same software packages installed as different versions, so instead of having to reinstall a package everytime you want to use a different software, you can instead just execute a command and you are in the correct environment to use the desired software. 
-    To install your environment for nPSF, you will want to go to your user home directory (e.g. mine is `wgiforos@Haumea:~$`) and type the command ...
+    To install your environment for nPSF, you will want to go to your user home directory (e.g. mine is `wgiforos@Haumea:~$`) and type the command ... -> Currently, you will need to look up how to do this yourself. Or ask someone for help.
     
 For additional info on virtual environments, see: `https://docs.python.org/3/library/venv.html`. 
 
 You can find your .bashrc in your user base directory by typing `ls -a` and pressing enter. 
 
-2) Follow the information outlined in this users guide (except `###How to run nPSF`). 
+2) Follow the information outlined in this users guide (ignore `###How to run nPSF` for now). 
 
     When it comes to getting data from MAST, typically you want to enter the RA and DEC of your object on one of the nights observed in the data set you wish to pull images from. If you are working on KBOs, you can find this information by going to `http://www2.lowell.edu/users/grundy/tnbs`, clicking the hyperlink `status of the known binaries`, and then searching for your target TNO. Once you've clicked on it, you scroll down to Astrometric Observations and choose a night with HST/WFC3 observations, which includes the RA and DEC information for the chosen night. 
 
@@ -123,6 +157,6 @@ You can find your .bashrc in your user base directory by typing `ls -a` and pres
     
 3) Become acquainted with the `RUNPROPS.md` file, which is a guide to using `runprops.txt`.
 
-4) Once you have a data directory containing a `_flc.fits` file, a `runprops.txt` file, and a `startguess.csv` file, and they have been completed filled out according to your desired parameters, follow the instructions of `###How to run nPSF` found in this document.
+4) Once you have a data directory containing a `_flc.fits` file, a `runprops.txt` file, and a `startguess.csv` file, and they have been completely filled out according to your desired parameters, follow the instructions of `###How to run nPSF` found in this document.
 
 5) Learn what your results mean in `### The Results Folder` section of this document.

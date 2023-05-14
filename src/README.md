@@ -7,7 +7,10 @@ Students: Ian Clark, Jarrod Hansen, Jake Jensen, Maya Laker, Rochelle Steele, ma
 Brigham Young University
 contact darin_ragozzine@byu.edu for more information
 
-The src file currently holds
+If you write a new script, you will need to manually add it to this README file.
+
+
+### src Scripts
 
 3plot_compare: Prints a plot of the residuals in a 3 psf run as individual residual plots side by side.
 

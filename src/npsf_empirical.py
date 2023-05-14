@@ -258,8 +258,8 @@ testpsf = getpsf_hst(filename)
 # Trim the empirical psf to avoid fitting artifacts in the psf. 
 psf_x = runprops.get("psf_x")
 psf_y = runprops.get("psf_y")
-psf_size = runprops.get("psf_size")
-testpsf = testpsf[psf_x:psf_x+psf_size,psf_y:psf_y+psf_size]
+epsf_size = runprops.get("emp_size")
+testpsf = testpsf[psf_x:psf_x+epsf_size,psf_y:psf_y+epsf_size]
 
 """
 # Check that trimming the psf is set such that the lefthand corner is the same for both the psf and the image.

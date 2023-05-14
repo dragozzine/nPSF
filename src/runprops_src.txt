@@ -38,6 +38,11 @@
 	"cr_objlim": 5.0,
 	"use_clustering": true,
 	"max_prune": 0.8,
+    
+	# Empirical settings
+	"psf_size": 30,
+	"psf_x": 0,
+	"psf_y": 0,
 
 	# Map settings
 	"map_identifier": "super_fine",
