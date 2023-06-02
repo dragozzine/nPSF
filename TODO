@@ -1,0 +1,21 @@
+Todo items:
+
+*) Add docstrings to all functions/scripts
+
+*) Compile the ReadMe that encompasses all scripts (README.md found in src)
+    # The point of this is to have a list of each script in src, which in turn contain lists of the docstrings of each function in those scripts. 
+
+*) Fix how long nPSF takes to perform the latlon transformations - Ben says he'll do this
+
+*) Empirical PSFs (npsf_empirical.py, analysis_emp.py)
+    # These scripts bypass the normal npsf_run.py and analysis.py because it allows the user to enter their own "empirical" psf rather than having Tinytim generate it for them. 
+
+*) Compare plots (3plot_compare.py)
+    #Prints a plot of the residuals in a 3 psf run as individual residual plots side by side.
+    
+*) Fix the bright_sep_lim plots (These don't work right now, according to Dr. Ragozzine. The function is found in analysis.py)
+
+*) Gaussian Mixture Model (GMM TODO folder)
+
+*) optimizer code (npsf_optimize.py, optimize.py)
+    #Testing that the optimizer works

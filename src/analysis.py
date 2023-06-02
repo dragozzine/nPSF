@@ -52,23 +52,26 @@ def plots(sampler, resultspath, runprops):
 		make_likelihood_plots(flatchain, llhoods, names, resultspath, runprops)
 
 	elif npsfs >= 2:
-		# Calculating derived parameters
+		# Making lists of each ra and dec name
 		ralist = []
 		for i in range(npsfs):
 			ralist = np.append(ralist,'ra' + str(i + 1))        
 		declist = []
 		for i in range(npsfs):
 			declist = np.append(declist,'dec' + str(i + 1))
-            
+
+		# Setting up a dataframe to hold the derived parameters         
 		astromlist = np.append(ralist,declist)       
 		ind = list(range(0,len(flatchain)))        
 		astromdf = pd.DataFrame(columns = astromlist, index = ind)
 
+		# Calculating each ra and dec                  
 		num = 0        
 		for i in range(npsfs):
 			astromdf[ralist[i]],astromdf[declist[i]] = w.pixel_to_world_values(flatchain[:,(num+1)].flatten() + runprops.get("stamp_y"), flatchain[:,num].flatten() + runprops.get("stamp_x"))
 			num += 3
-        
+
+		# Calculating derived parameters
 		num = npsfs - 2
 		num1 = 5
 		for i in range(npsfs-1):        
@@ -82,7 +85,7 @@ def plots(sampler, resultspath, runprops):
 			num -= 1
 			num1 += 3
 
-		# Loading derived parameters into arrays
+		# Setting up a list of names
 		names = []
 		for i in range(npsfs):
 			names = np.append(names,"x" + str(i + 1))
@@ -91,6 +94,7 @@ def plots(sampler, resultspath, runprops):
 			if i == (npsfs - 1):
 				names = np.append(names,'f')
 
+		# Appending the derived parameter names to our list of names               
 		dnames = names.copy() 
 		num = 1
 		for i in range(npsfs-1):            
@@ -102,7 +106,8 @@ def plots(sampler, resultspath, runprops):
 			dnames = np.append(dnames,"dx"+ str(npsfs - num))
 			dnames = np.append(dnames,"dy"+ str(npsfs - num))
 			num -= 1
-       
+
+		# Loading derived parameters into arrays            
 		dfchain = flatchain.copy()  
 		num = npsfs - 2
 		for i in range(npsfs-1):        
@@ -769,6 +774,96 @@ def make_bright_sep(sep, dmag, resultspath, weights = None):
 	plt.savefig(resultspath + "/bright_sep_lim.pdf")
 	plt.close()
 
+def optimizer_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
+	nwalkers = runprops.get("nwalkers")
+	likelihoodspdf = PdfPages(resultspath + "/optimizer_likelihoods.pdf")
+	ylimmin = np.percentile(llhoods, 1)
+	ylimmax = llhoods.max() + 20
+    
+	for i in range(dnames.size):
+		plt.figure(figsize = (9,9))
+		plt.subplot(221)
+		plt.hist(dfchain[:,i], bins = 40, histtype = "step", color = "black")
+		plt.subplot(223)
+		plt.scatter(dfchain[:,i], llhoods,
+			    c = np.mod(np.linspace(0,llhoods.size - 1, llhoods.size), nwalkers),
+			    cmap = "nipy_spectral", edgecolors = "none", rasterized=True, alpha=1.0)
+		plt.xlabel(dnames[i])
+		plt.ylabel("Log(L)")
+		#plt.xlim(-0.25, 0.25)
+		plt.ylim(ylimmin, ylimmax)
+		plt.subplot(224)
+		llflat = llhoods
+		plt.hist(llflat[np.isfinite(llflat)], bins = 40, orientation = "horizontal",
+			 histtype = "step", color = "black")
+		plt.ylim(ylimmin, ylimmax)
+		likelihoodspdf.savefig()
+	likelihoodspdf.close()
+	plt.close("all")
+
+    
+def optimizer_sigsdf(flatchain, llhoods, names, npsfs, resultspath,runprops):  
+	import astropy.io
+	import astropy.wcs
+	f = astropy.io.fits.open(runprops.get('image_path') + runprops.get('input_image'))
+	w = astropy.wcs.WCS(f[2].header)
+    
+	# Prepare the copies and calculate ra and dec of the primary object   
+	dnames = names.copy() 
+	dfchain = flatchain.copy()
+	ra1,dec1 = w.pixel_to_world_values(flatchain[:,1].flatten() + runprops.get("stamp_y"), flatchain[:,0].flatten() + runprops.get("stamp_x"))
+    
+	num = 1     
+	index = 3     
+	for i in range(npsfs-1):
+		# Append the derived names to a new names list  
+		dnames = np.append(dnames,"dra"+ str(npsfs - num))
+		dnames = np.append(dnames,"ddec"+ str(npsfs - num))
+		dnames = np.append(dnames,"dmag"+ str(npsfs - num))
+		dnames = np.append(dnames,"sep"+ str(npsfs - num))
+		dnames = np.append(dnames,"pa"+ str(npsfs - num))
+		dnames = np.append(dnames,"dx"+ str(npsfs - num))
+		dnames = np.append(dnames,"dy"+ str(npsfs - num))
+        
+		# Calculate the derived parameters
+		ra2,dec2 = w.pixel_to_world_values(flatchain[:,index+1].flatten() + runprops.get("stamp_y"), flatchain[:,index].flatten() + runprops.get("stamp_x"))
+		dra = (ra2 - ra1)*3600*np.cos(np.deg2rad(dec1))
+		ddec = (dec2 - dec1)*3600
+		dmag = -2.5*np.log10(flatchain[:,index+2].flatten()/flatchain[:,2].flatten())
+		sep = np.sqrt(dra**2 + ddec**2)
+		pa = np.arctan2(ddec,dra)*57.2958
+		dx = flatchain[:,index].flatten() - flatchain[:,0].flatten()
+		dy = flatchain[:,index+1].flatten() - flatchain[:,1].flatten()
+
+		# Load the derived parameters into arrays
+		dfchain = np.concatenate((dfchain,np.array(dra).reshape((dra.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(ddec).reshape((ddec.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dmag).reshape((dmag.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(sep).reshape((sep.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(pa).reshape((pa.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dx).reshape((dx.size,1)) ), axis = 1)
+		dfchain = np.concatenate((dfchain,np.array(dy).reshape((dy.size,1)) ), axis = 1)        
+		num -= 1   
+		index += 3        
+    
+	# Set up and fill the output file
+	ind = np.argmax(llhoods)
+	sigsdf = pd.DataFrame(columns = ['median', 'best fit'], index = dnames)
+   
+	for i in range(len(dfchain[0])):
+		num = dfchain[:,i]
+
+		median = np.percentile(num,50, axis = None)
+		bestfit = dfchain[ind,:].flatten()[i]
+		sigsdf['median'].iloc[i] = median
+		sigsdf['best fit'].iloc[i] = bestfit
+       
+	# Save output    
+	print(sigsdf)
+	filename = 'optimizer_sigsdf.csv'    
+	sigsdf.to_csv(resultspath + "/" + filename)    
+	return dfchain, dnames
+    
     
 def make_obsdf(dfchain, astromdf, f, objectnames, npsfs, resultspath):
 	# Get time from image header. We want the midtime of exposure, so ((EXPEND - EXPSTART) / 2)

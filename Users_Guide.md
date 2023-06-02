@@ -35,8 +35,27 @@ Once all required packages are installed, nPSF is generally run from the command
 
 The first time nPSF is run from a data directory, a new directory will be automatically created in `nPSF/results` with the same name as the utilized data directory. This results directory will hold an additional unique directory which saves all data from your run, and it will continue to be populated by directories saving results from any further runs you may execute.
 
- While nPSF is running, a loading bar will appear showing the progress and estimated time remaining in that step. Once nPSF is done running, a variety of plots will be output to the results folder.
+Additionally, a first time run will include a series of fast moving text that indicates TinyTim is making the PSFs needed for the run. I believe this can take between 5-10 minutes. After that, nPSF will initiate the MCMC process. 
 
+When a run is initiated and after any PSF making output by TinyTim, a series of values will appear in the terminal:
+
+    ndim: This is an indicator of how many PSFs you are fitting to the image. 4 dimensions indicates a single PSF, 7 dimensions for 2 PSFs, and 10 dimensions for 3 PSFs.
+    
+    bunits: The type of units the image is in. For the way nPSF is set up, the image units need to be in ELECTRONS for things to work properly.
+    
+    filter: The filter in which the image was taken. Placing it here makes it easier to identify, rather than pulling up the image header in ds9.
+    
+    CCD chip: 
+    
+    cr_clean: Indicates whether you set cosmic ray cleaning to true or false in the runprops. This merely helps you catch whether you put it to what you wanted or not. 
+    
+    med_moise:
+    
+    std_noise:
+    
+A single number value follows these results, which indicates...
+
+While nPSF is running, a loading bar will appear showing the progress and estimated time remaining in that step. Once nPSF is done running, a variety of plots will be output to the results folder.
 
 ### The Results Folder
 
@@ -130,6 +149,15 @@ Additional Files:
 
     startguess.csv: A copy of the `startguess.csv` file used for this run.
     
+    
+## Alternative Functions of nPSF
+
+Optimizer
+
+Empirical
+
+Map
+
 
 ### Additional Notes
 

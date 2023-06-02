@@ -109,6 +109,22 @@ Example values and names are given for each parameter in this document, but thes
 
 
 
+## Optimizer settings:
+
+"use_optimizer": true,
+    # Tells nPSF to do an optimizer run rather than a normal fitting run
+
+"op_walkers": 100,
+    # Sets the number of walkers to optimize. This number cannot exceed the nwalkers value set in the Initialization properties
+
+"op_steps": 20,
+    # The number of steps to iterate the walkers for
+
+"op_burnin": 10,
+    # The number of steps to iterate and discard as burnin
+
+
+
 ## Empirical settings (Ignored unless running an empirical psf program):
 
 #### Settings used to cut out artifacts in your manufactured empirical psf:
@@ -116,7 +132,7 @@ Example values and names are given for each parameter in this document, but thes
     # Tells nPSF the size of the empirical psf (can make this smaller than actual size to cut out artifacts)
 
 "psf_x": 0,
-    # psf_x and psf_y adjust the location of the left corner of the empirical psf (to cut out artifacts). Make sure you change emp_size accordingly so that your range still fits within your empirical psf image.
+    # psf_x and psf_y adjust the location of the left corner of the empirical psf (to cut out artifacts). Make sure you change emp_size accordingly so that your range still fits within your empirical psf image
 
 "psf_y": 0,
 

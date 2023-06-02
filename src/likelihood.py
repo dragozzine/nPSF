@@ -11,6 +11,8 @@ from insertpsf import *
 import scipy.stats
 import sys
 from csv import writer
+from priors import log_prior
+import random
 
 def log_likelihood(parameters, image, psfs, focuses, runprops, plotit = False):
     xsize = image.shape[0]
@@ -253,13 +255,14 @@ def log_likelihood_map(psf1params, psf2loc, psf2heights, image, psf, runprops):
     return llhoods
 
 
-def log_probability(image,parameters):
-    lp = log_prior(parameters) #I did not see anything in this code yet
+def log_probability(parameters, image, psfs, focuses, runprops):
+    llhood = log_likelihood(parameters, image, psfs, focuses, runprops)
+    lp = log_prior(parameters) #log_prior is set to return 0, as there are no priors for nPSF.
     if not np.isfinite(lp):
         return -np.inf
-    return lp + log_likelihood(image,parameters)
+    return lp + llhood
 
-
+            
 # test log_likelihood
 # give parameters with a known answer and confirm it is correct
 

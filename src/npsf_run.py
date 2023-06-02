@@ -268,6 +268,36 @@ for i in range(nwalkers):
             print("Could not fix bad initial guesses / bad walkers")
             sys.exit()
 
+# Run the optimizer if use_optimizer is marked as true in the runprops            
+if runprops.get("use_optimizer")==True:
+    print("use_optimizer set to True")
+    import optimize   
+    
+    # Do a burnin period
+    p0, throwaway = optimize.func_optimize(runprops.get("op_walkers"), p0, image, psfs, focuses, runprops, runprops.get("op_burnin"))
+
+    # Run the optimizer
+    op_data, op_llhoods = optimize.func_optimize(runprops.get("op_walkers"), p0, image, psfs, focuses, runprops, runprops.get("op_steps"))
+    
+    # Making a list of names
+    npsfs = runprops.get("npsfs")
+    names = []
+    for i in range(npsfs):
+        names = np.append(names,"x" + str(i + 1))
+        names = np.append(names,"y" + str(i + 1))
+        names = np.append(names,"h" + str(i + 1))
+        if i == (npsfs - 1):
+            names = np.append(names,'f')
+            
+    # Plot the optimizer run
+    op_data, dnames = optimizer_sigsdf(op_data, op_llhoods, names, npsfs, resultspath, runprops)
+    
+    optimizer_likelihood_plots(op_data, op_llhoods, dnames, resultspath, runprops)
+    
+    #Quit
+    sys.exit()
+
+                
 # Setting up emcee sampler object
 backend = emcee.backends.HDFBackend(resultspath + "/chain.h5")
 sampler = emcee.EnsembleSampler(nwalkers, ndim, log_likelihood, args = [image, psfs, focuses, runprops], backend = backend)

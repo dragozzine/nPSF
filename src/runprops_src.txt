@@ -39,6 +39,12 @@
 	"use_clustering": true,
 	"max_prune": 0.8,
     
+	# Optimizer settings
+	"use_optimizer": false,
+	"op_walkers": 100,
+	"op_steps": 20,
+	"op_burnin": 10,
+    
 	# Empirical settings
 	"psf_size": 30,
 	"psf_x": 0,
