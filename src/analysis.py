@@ -777,7 +777,7 @@ def make_bright_sep(sep, dmag, resultspath, weights = None):
 def optimizer_likelihood_plots(dfchain, llhoods, dnames, resultspath, runprops):
 	nwalkers = runprops.get("nwalkers")
 	likelihoodspdf = PdfPages(resultspath + "/optimizer_likelihoods.pdf")
-	ylimmin = np.percentile(llhoods, 1)
+	ylimmin = np.percentile(llhoods, 20)
 	ylimmax = llhoods.max() + 20
     
 	for i in range(dnames.size):
@@ -807,6 +807,14 @@ def optimizer_sigsdf(flatchain, llhoods, names, npsfs, resultspath,runprops):
 	import astropy.wcs
 	f = astropy.io.fits.open(runprops.get('image_path') + runprops.get('input_image'))
 	w = astropy.wcs.WCS(f[2].header)
+
+	# Get time from image header. We want the midtime of exposure, so ((EXPEND - EXPSTART) / 2)
+	# Where EXPEND and EXPSTART are in Modified Julian Date (MJD)
+	expend = f[0].header['expend']
+	expstart = f[0].header['expstart']
+	timeMJD = expstart + ((expend - expstart) / 2)
+	timeJD = timeMJD + 2400000.5
+	print("Observation time JD:", timeJD)
     
 	# Prepare the copies and calculate ra and dec of the primary object   
 	dnames = names.copy() 
@@ -848,16 +856,18 @@ def optimizer_sigsdf(flatchain, llhoods, names, npsfs, resultspath,runprops):
     
 	# Set up and fill the output file
 	ind = np.argmax(llhoods)
-	sigsdf = pd.DataFrame(columns = ['median', 'best fit'], index = dnames)
-   
+	sigsdf = pd.DataFrame(columns = ['median', 'best fit'], index = np.insert(dnames,0,"timeJD"))
+	sigsdf['best fit'].iloc[0] = timeJD
+    
 	for i in range(len(dfchain[0])):
 		num = dfchain[:,i]
 
 		median = np.percentile(num,50, axis = None)
 		bestfit = dfchain[ind,:].flatten()[i]
-		sigsdf['median'].iloc[i] = median
-		sigsdf['best fit'].iloc[i] = bestfit
-       
+		sigsdf['median'].iloc[i+1] = median
+		sigsdf['best fit'].iloc[i+1] = bestfit
+
+    
 	# Save output    
 	print(sigsdf)
 	filename = 'optimizer_sigsdf.csv'    

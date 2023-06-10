@@ -61,7 +61,7 @@ Example values and names are given for each parameter in this document, but thes
     # In ds9, this is the x position of the center of your primary target
     
 "fmin": -8.0,
-    # Fmin and fmax are the minimum and maximum extent that it should check focus values (The focus of HST changes over time due to expansion/contraction from heat)
+    # Fmin and fmax are the minimum and maximum extent that it should check focus values (The focus of HST changes over time due to expansion/contraction from heat). I took to running these between -11.0 and 11.0, but I never saw any focus be larger than 7.6, and seldom at that, so I recommend between -8 and 8 (though -6 and 6 could potentially be ok, as long as you keep an eye out for a focus parameter pushing the boundary
     
 "fmax": 8.0,
     

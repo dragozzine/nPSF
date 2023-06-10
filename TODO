@@ -19,3 +19,4 @@ Todo items:
 
 *) optimizer code (npsf_optimize.py, optimize.py)
     #Testing that the optimizer works
+    # Implement the run starting at the end of the optimizer (like in Multimoon)

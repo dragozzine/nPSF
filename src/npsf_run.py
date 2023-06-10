@@ -277,7 +277,7 @@ if runprops.get("use_optimizer")==True:
     p0, throwaway = optimize.func_optimize(runprops.get("op_walkers"), p0, image, psfs, focuses, runprops, runprops.get("op_burnin"))
 
     # Run the optimizer
-    op_data, op_llhoods = optimize.func_optimize(runprops.get("op_walkers"), p0, image, psfs, focuses, runprops, runprops.get("op_steps"))
+    p0, op_llhoods = optimize.func_optimize(runprops.get("op_walkers"), p0, image, psfs, focuses, runprops, runprops.get("op_steps"))
     
     # Making a list of names
     npsfs = runprops.get("npsfs")
@@ -290,9 +290,9 @@ if runprops.get("use_optimizer")==True:
             names = np.append(names,'f')
             
     # Plot the optimizer run
-    op_data, dnames = optimizer_sigsdf(op_data, op_llhoods, names, npsfs, resultspath, runprops)
+    p0, dnames = optimizer_sigsdf(p0, op_llhoods, names, npsfs, resultspath, runprops)
     
-    optimizer_likelihood_plots(op_data, op_llhoods, dnames, resultspath, runprops)
+    optimizer_likelihood_plots(p0, op_llhoods, dnames, resultspath, runprops)
     
     #Quit
     sys.exit()

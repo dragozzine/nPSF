@@ -46,7 +46,7 @@
 	"op_burnin": 10,
     
 	# Empirical settings
-	"psf_size": 30,
+	"emp_size": 30,
 	"psf_x": 0,
 	"psf_y": 0,
 
