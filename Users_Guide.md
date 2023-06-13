@@ -1,5 +1,9 @@
 # User's Guide to nPSF
 
+### Purpose of the User's Guide
+
+This file is designed to outline the user process of nPSF to a new user and to provide a reference for the various outputs nPSF can generate. Additionally, alternate uses of nPSF are outlined in the `## Alternative Functions of nPSF` section of this document. 
+
 ### Purpose of nPSF
 
     nPSF is designed to be a code that returns a likelihood map for the relative positions of multiple (n) PSFs in an image. It's goal is to provide likelihood information for relative astrometry, e.g., KBO moons.
@@ -37,7 +41,7 @@ The first time nPSF is run from a data directory, a new directory will be automa
 
 Additionally, a first time run will include a series of fast moving text that indicates TinyTim is making the PSFs needed for the run. I believe this can take between 5-10 minutes. After that, nPSF will initiate the MCMC process. 
 
-When a run is initiated and after any PSF making output by TinyTim, a series of values will appear in the terminal:
+When a run is initiated and after any PSF generation output by TinyTim, a series of values will appear in the terminal:
 
     ndim: This is an indicator of how many PSFs you are fitting to the image. 4 dimensions indicates a single PSF, 7 dimensions for 2 PSFs, and 10 dimensions for 3 PSFs.
     
@@ -45,19 +49,21 @@ When a run is initiated and after any PSF making output by TinyTim, a series of 
     
     filter: The filter in which the image was taken. Placing it here makes it easier to identify, rather than pulling up the image header in ds9.
     
-    CCD chip: 
+    CCD chip: The CCD camera chip number.
     
     cr_clean: Indicates whether you set cosmic ray cleaning to true or false in the runprops. This merely helps you catch whether you put it to what you wanted or not. 
     
-    med_moise:
+    med_moise: The median value of all pixels in the image.
     
-    std_noise:
+    std_noise: The square root of the median noise. 
     
-A single number value follows these results, which indicates...
+    A single number value follows these results, which I don't know the purpose of, but is the product of the std_noise and the noise_cutoff divided by 0.1.
 
 While nPSF is running, a loading bar will appear showing the progress and estimated time remaining in that step. Once nPSF is done running, a variety of plots will be output to the results folder.
 
 ### The Results Folder
+
+If for some reason an expected plot is not created or is created disfunctional, the user may run `remake_plots.py` from the results directory experiencing this issue. Note that a `chain.h5` file for the run must be present to do this.
 
 Convergence Plots:
 
@@ -73,13 +79,6 @@ Image PNGs:
     bestfit.png: Recreates an image of the psfs using the best fit values found during the nPSF run.
 
     cleanedimage.png: An image of the psfs after it has been cleaned of cosmic rays. The blue dots represent the starting guess positions of this specific nPSF run. 
-
-    Work in progress, only appear if you run 3plot_compare.py (trying to get better residuals results):
-        compare_plots.png:
-
-        compare_plots_normalized.png:
-
-        compare_plots_zoomed.png:
     
     crmask.png: The image of the mask that cleans the cosmic rays out of your image to give you the cleanedimage.png.
     
@@ -88,6 +87,14 @@ Image PNGs:
     residuals.png: Shows the difference between the real data psf image and the fitted psf image. 
     
     trimmedpsf.png: Unique to empirical psf runs, this shows an image that has been trimmed to negate artifacts in the supplied empirical psf according to the additional parameters "emp_size","psf_x", and "psf_y" included in the empirical settings of the runprops. 
+
+   Work in progress, only appear if you run 3plot_compare.py (trying to get better residuals results, an example of these plots can be found on Haumea in `/home/byu.local/wgiforos/research/nPSF/results/2005_EO304/2022-07-30_10.31.40_idy61hs5q_flc_3psf`):
+   
+        compare_plots.png: Shows the full image of the cleaned image, the bestfit image, and the residuals image in a row
+
+        compare_plots_normalized.png: Same as compare_plots.png, but was my attempt to normalize the residuals image. I'm pretty sure I did not do this correctly, so it should be fixed if these are sought after again.
+
+        compare_plots_zoomed.png: Shows a grid of images according to the format of compare_plots.png, but zoomed in so that each row shows a different object in the three images.   
 
 
 Analysis Plots:
@@ -152,12 +159,53 @@ Additional Files:
     
 ## Alternative Functions of nPSF
 
-Optimizer
+Optimizer:
+    Instead of doing a full nPSF run, the user can simply attempt to optimize the likelihood to get a guess of the correct parameter values by marking `use_optimizer` as true in the runprops. The same runprops and startguess files as `npsf_run.py` can be used for this run according to the additional `Optimizer settings` outlined in `RUNPROPS.md`. 
+    
+    optimize.py: script used by npsf_run.py when use_optimizer is set to true in the runprops.
+    
+    optimizer_sigsdf.csv: similar to 'sigsdf.csv' defined above, but without the standard deviation errors and with an additional JD time output at the top of the column. 
 
-Empirical
 
-Map
+Empirical PSFs:
+    This function uses an empirical psf provided by the user rather than generating psfs with TinyTim. The focus parameter is also ignored in this type of run. The empirical psf must be included in the data directory as a .fits file along with the image, runprops, and startguess. This empirical psf function uses the same runprops and startguess type files as `npsf_run.py`, but additionally makes use of the runprops `Empirical settings`, which are outlined in the `RUNPROPS.md` file.
+    
+    npsf_empirical.py: To use an empirical psf, use this function rather than npsf_run.py. It runs similarly, but skips TinyTim psf generation and ignores the focus parameter. 
+    
+    trimmedpsf.png: output of the empirical psf used. This psf is trimmed according to the 'Empirical Settings' as outlined in 'RUNPROPS.md'.
+    
 
+Likelihood Map:
+    Creates a grid of values of the given image from which a likelihood map is generated using interpolation techniques. This process never reached the interpolation accuracy we desired, and so the project stands unfinished. All map functions use the same runprops and startguess type files as `npsf_run.py`, but using the runprops `Map settings`, which are outlined in the `RUNPROPS.md` file.
+    
+    map_run.py: To create a likelihood map, run this function instead of npsf_run.py. It takes an HST image in a data directory and creates a likelihood map for it. 
+    
+    map_run_fixedgrid.py: This script was created to better test whether our interpolation function was working, as map_run.py is set up so that a finer grid doesn't necessarily have the same points in the grid as a less fine grid. Using a fixedgrid helped combat this issue. Besides this, it runs the same as map_run.py.
+    
+    multi_map.py: Takes a folder of HST images and creates a liklihood map for each one. I don't know if I ever tested this script, so I can't say whether it works now or not, though I did make the same updates to it as I did to map_run.py to try to keep it up to date. 
+    
+    remake_map.py: Used to regenerate the output plots for a likelihood map run. This script should be run from a results directory. A chain.h5 file must be present in the results directory to do this. 
+
+    ..._map: The results folder created for map runs, where the '...' is filled by the name of your object's data folder as documented in the runprops under 'image_path'.
+    
+    dx_dy_llhoods.png: The likelihood map plotted in delta x vs. delta y with a color scale of the likelihoods.
+    
+    dlat_dlong_llhoods.png: The likelihood map plotted in delta latitude vs. delta longitude with a color scale of the likelihoods.
+    
+    grid.npy: A loadable file of the x and y values of the grid to allow for easier access when testing the effectiveness of the likelihood map functions. 
+    
+    llhoods.npy: A loadable file of the llhood values of the grid to allow for easier access when testing the effectiveness of the likelihood map functions. 
+    
+
+m-a_sep_TNO.py:
+    Indicates hierarchical triple detectability and for the input of any TNO system. Outputs a plot of mass ratio vs. semi-major axis. This script should be run from the results directory and uses a normal runprops as input. 
+
+    objectdata.txt: .txt file similar to runprops.txt that is exclusively used for m-a_sep_TNO.py and must be included in the results directory of the object being analyzed (deleting the '_src' bit at the end of the filename).
+
+    sigsdf_mm.csv: a sigsdf file taken from the Multimoon output of the specific object being run. Contains the J2 values and masses needed for this code to run (you may need to rename the Multimoon file as sigsdf_mm.csv).
+
+    mr_x_sma_....pdf: pdf output of the plot generated by m-a_sep_TNO.py. The darkly shaded area indicates where the tertiary object cannot exist in a hierarchical triple system. The lightly shaded region before the approximate dectability limit is where we would expect the tertiary object to be detectable by nPSF. 
+    
 
 ### Additional Notes
 
@@ -177,6 +225,8 @@ You can find your .bashrc in your user base directory by typing `ls -a` and pres
 
 2) Follow the information outlined in this users guide (ignore `###How to run nPSF` for now). 
 
+    See: `https://docs.google.com/document/d/1XxJBPNaASCmn9kUZJDkNdUUgqLpHbnqxM2cPmaSHNqU/edit?usp=drive_link`
+    
     When it comes to getting data from MAST, typically you want to enter the RA and DEC of your object on one of the nights observed in the data set you wish to pull images from. If you are working on KBOs, you can find this information by going to `http://www2.lowell.edu/users/grundy/tnbs`, clicking the hyperlink `status of the known binaries`, and then searching for your target TNO. Once you've clicked on it, you scroll down to Astrometric Observations and choose a night with HST/WFC3 observations, which includes the RA and DEC information for the chosen night. 
 
     Once you have copied and plugged this info into the MAST search bar, a list of data should show up. You can further refine this list by checking on the left the following: HST in the Mission category, WFC3/UVIS in Instrument, and your object's title in Target Name (additional parameters can be checked by you according to what you need, these just tend to do a pretty good job of narrowing it down). 

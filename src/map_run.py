@@ -1,7 +1,7 @@
 #
 # map_run.py
 #
-# Takes an HST image in a data directory and creates a fixed grid likelihood map
+# Takes an HST image in a data directory and creates a likelihood map
 #
 # Benjamin Proudfoot, updated by William Giforos Summer 2022
 # 01/24/22

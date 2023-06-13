@@ -46,6 +46,7 @@
 	"op_burnin": 10,
     
 	# Empirical settings
+	"input_psfs": "haumea.u.0044.psf.fits",  
 	"emp_size": 30,
 	"psf_x": 0,
 	"psf_y": 0,

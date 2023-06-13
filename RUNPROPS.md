@@ -128,6 +128,10 @@ Example values and names are given for each parameter in this document, but thes
 ## Empirical settings (Ignored unless running an empirical psf program):
 
 #### Settings used to cut out artifacts in your manufactured empirical psf:
+
+"input_psfs": "haumea.u.0044.psf.fits",  
+    # Insert the name of your .fits file empirical psf to use in the run
+    
 "emp_size": 30,
     # Tells nPSF the size of the empirical psf (can make this smaller than actual size to cut out artifacts)
 

@@ -1,7 +1,7 @@
 #
 # multi_run.py
 #
-# Takes a folder of HST images and runs npsf on them
+# Takes an HST image in a data directory and creates a fixed grid likelihood map
 #
 # Benjamin Proudfoot
 # 01/24/22
@@ -271,4 +271,3 @@ sampler = np.zeros((1,1))
 # Make plots
 #likelihood_map(grid, llhoods, resultspath, runprops)
 map_plots(sampler, grid, grid_llhoods, resultspath, runprops)
-

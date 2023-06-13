@@ -1,0 +1,17 @@
+# .txt file similar to runprops.txt that is exclusively used for m-a_sep_TNO.py and must be included in the results directory of the object being analyzed (deleting the '_src' bit at the end of the filename). 
+
+{
+	# TNO properties from Grundy/Johnston
+	"input_image": "id9h02ibq_flt.fits",
+	"image_path": "../data/2006_BR284/",   
+	"primary_radius": 44.9,
+	"dmag": 0.5,   
+	"sma_outer": 25500,				# in km
+	"ecc_outer": 0.275,
+	"avg_distance": 41.69,			# average distance to object in AU 
+    
+	# input values from ds9 image analysis
+	"total_counts": 11082,			# get from region, information, analysis-statistics, targeting the primary object
+	"sky_noise": 7.129				# Same as above, but for blank space and using the stddev value (or calculate standard deviation of a 9x9 ds9 pixel table (targeting the black sky))
+    
+}

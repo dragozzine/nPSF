@@ -9,6 +9,16 @@
 #	06/13/22
 #
 
+"""             
+    INPUTS
+          runprops.txt - provides the names of the objects to the script
+          objectdata.txt - provides various parameters obtained from the Grundy and Johnston webpages, as well as counts and skynoise obtained from ds9
+          sigsdf_mm.csv - a sigsdf file taken from the Multimoon output for the specific object being run. Contains the J2 values, etc...
+   
+    OUTPUTS:
+          mr_x_sma_"Object name".pdf - desired plots
+"""
+
 from unpack import *
 import numpy as np
 import matplotlib.pyplot as plt

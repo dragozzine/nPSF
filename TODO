@@ -15,8 +15,7 @@ Todo items:
     
 *) Fix the bright_sep_lim plots (These don't work right now, according to Dr. Ragozzine. The function is found in analysis.py)
 
-*) Gaussian Mixture Model (GMM TODO folder)
+*) Gaussian Mixture Model 
 
-*) optimizer code (npsf_optimize.py, optimize.py)
-    #Testing that the optimizer works
+*) optimizer code (npsf_run.py, optimize.py)
     # Implement the run starting at the end of the optimizer (like in Multimoon)

@@ -38,7 +38,7 @@ import gc
          and Longitude, while also converting the dates to Primary-Centric Julian dates
          
     CALLING SEQUENCE:
-         convert_to_primary_centric(paramsDF, objectName)
+         convert_to_primary_centric(paramsDF, objectNames, numobjects, resultspath, sample_num)
    
     INPUTS
           paramsDF - A dataframe of the observed positional data of the KBO in question

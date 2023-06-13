@@ -12,7 +12,7 @@ If you write a new script, you will need to manually add it to this README file.
 
 ### src Scripts
 
-3plot_compare: Prints a plot of the residuals in a 3 psf run as individual residual plots side by side.
+3plot_compare: Prints a plot of the cleaned image, bestfit, and residuals in a 3 psf run as individual plots side by side.
 
 
 analysis: Runs all of the analysis on the chains from npsf_run.
@@ -69,9 +69,6 @@ analysis: Runs all of the analysis on the chains from npsf_run.
     
     
 analysis_emp:
-
-
-brightness_limit: Intent of this code was to determine the brightness detection limit of an object in a specific image. Code was never finished due to simpleness of just getting the information from SAOImageDS9 itself.
 
 
 clustering: Implements the clustering algorithm described in Hou 2010
@@ -349,6 +346,8 @@ SUPPORT FILES:
 runprops_src.txt: This text file contains all of the variables that will be used in nearly every function of nPSF. It is read in as a dictionary using JSON methods.
 
 startguess_src.csv: This csv file contains the startguesses for the positions of each psf being utilized in the current run. Should be in pixels accordingly fitted to the stamp size designated in runprops.txt. 
+
+objectdata_src.txt: This text file contains additional parameters to be used exclusively by `m-a_sep_TNO.py`. It is read in as a dictionary using JSON methods.
 
 image.csv: 
 
