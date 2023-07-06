@@ -47,6 +47,7 @@ else:
     print("m-a_sep_borasisi.py needs to be run from a results directory.")
     sys.exit()
 
+# Read in the TNO names
 name_dict = runprops.get("names_dict")
 objectnames = []
 for i in name_dict.values():
@@ -55,7 +56,6 @@ print(objectnames)
 
 # Import multimoon sigsdf file
 sigsdf_mm = pd.read_csv(resultspath +'/sigsdf_mm.csv',sep=',',index_col=0)
-#print(sigsdf_mm)
 
 # Define the total mass, mass ratio, and fractional brightness (for purposes of the Stability Limit)
 Mtot = (sigsdf_mm.at['mass_1','median'] + sigsdf_mm.at['mass_2','median']) * 10**(18) # or 3.43 E18 kg (borasisi & pabu)
@@ -63,7 +63,7 @@ Mtot = (sigsdf_mm.at['mass_1','median'] + sigsdf_mm.at['mass_2','median']) * 10*
 # Eris proposed mass ratio .05, sma 12,400 km
 #Mtot = 1.5*(10**22)
 print("M_tot:",Mtot," kg")
-x =  .05# mass ratio, m in / m primary
+x =  .05# mass ratio, m_inner / m_primary
 fr_br = 10**(objectdata.get('dmag')*0.4) # Convert dmag to fractional brightness
 
 # solve for the masses
@@ -205,6 +205,7 @@ e = objectdata.get('ecc_outer')
 periapsis = a*(1-e) 
 
 """
+# This uses the SNR found in the fitsfile of the image rather than assuming SNR is 10 (Dr. Ragozzine prefers the 10 method)
 # Brightness Ratio limit (from which we calculate a mass ratio limit)
 tot_counts = objectdata.get('total_counts')
 sky_noise = objectdata.get('sky_noise')

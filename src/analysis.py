@@ -137,6 +137,8 @@ def plots(sampler, resultspath, runprops):
 		print(forsigsdf.head(10))        
 		print("Making the sigsdf file")
 		make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath)
+		#print("Comment out the obsdf/forsigsdf/sigsdf functions and make the sigsdf file without latitudes/longitudes")
+		#make_sigsdf_old(dfchain, llhoods, dnames, npsfs, resultspath)
        
 	else:
 		print("Error, enter a whole number of objects, 1 or greater. Aborting analysis.")      
@@ -952,6 +954,40 @@ def make_sigsdf(dfchain, forsigsdf, llhoods, dnames, npsfs, resultspath):
 		num -= 1        
         
         
+	ind = np.argmax(llhoods)
+	#print(dnames[(3*npsfs)+1])
+	#print(dnames[(3*npsfs)+2])
+    
+	sigsdf = pd.DataFrame(columns = ['-3sigma','-2sigma','-1sigma','median','1sigma','2sigma','3sigma', 'mean', 'best fit'], index = dnames)
+	j = 0
+   
+	for i in range(len(dfchain[0])):
+		num = dfchain[:,i]
+
+		median = np.percentile(num,50, axis = None)
+		neg3sig= np.percentile(num,0.37, axis = None)
+		neg2sig = np.percentile(num,2.275, axis = None)
+		neg1sig = np.percentile(num,15.866, axis = None)
+		pos1sig = np.percentile(num,84.134, axis = None)
+		pos2sig = np.percentile(num,97.724, axis = None)
+		pos3sig = np.percentile(num,99.63, axis = None)
+		mean = np.mean(num)
+		bestfit = dfchain[ind,:].flatten()[i]
+		sigsdf['-3sigma'].iloc[i] = neg3sig-median
+		sigsdf['-2sigma'].iloc[i] = neg2sig-median
+		sigsdf['-1sigma'].iloc[i] = neg1sig-median
+		sigsdf['median'].iloc[i] = median
+		sigsdf['1sigma'].iloc[i] = pos1sig-median
+		sigsdf['2sigma'].iloc[i] = pos2sig-median
+		sigsdf['3sigma'].iloc[i] = pos3sig-median
+		sigsdf['mean'].iloc[i] = mean
+		sigsdf['best fit'].iloc[i] = bestfit
+        
+	print(sigsdf)
+	filename = 'sigsdf.csv'    
+	sigsdf.to_csv(resultspath + "/" + filename)
+    
+def make_sigsdf_old(dfchain, llhoods, dnames, npsfs, resultspath):        
 	ind = np.argmax(llhoods)
 	#print(dnames[(3*npsfs)+1])
 	#print(dnames[(3*npsfs)+2])
